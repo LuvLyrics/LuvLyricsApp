@@ -71,6 +71,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Batch updates if possible, or only update if changed significantly
       store.updateProgress(currentTime, duration);
 
+      if (didJustFinish) {
+        store.setIsPlaying(true);
+        if (__DEV__) console.log('[PlayerContext] Song finished, playing next...');
+        store.nextInPlaylist();
+        return;
+      }
+
       if (store.isPlaying !== playing) {
         if (shouldPreservePlayingStateDuringSeek({
           playing,
@@ -87,10 +94,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Use didJustFinish — playbackState values vary by platform:
       // Android emits "ended", iOS emits via AVPlayerItemDidPlayToEndTime.
       // didJustFinish is the only reliable cross-platform signal.
-      if (didJustFinish) {
-        if (__DEV__) console.log('[PlayerContext] Song finished, playing next...');
-        store.nextInPlaylist();
-      }
+      
     }
   }, [status]);
 

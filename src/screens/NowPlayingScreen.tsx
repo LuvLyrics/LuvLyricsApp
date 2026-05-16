@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePlayer } from '../contexts/PlayerContext';
 import { usePlayerStore } from '../store/playerStore';
 import { useSongsStore } from '../store/songsStore';
+import { useArtHistoryStore } from '../store/artHistoryStore';
 import TimelineScrubber from '../components/TimelineScrubber';
 import CustomMenu from '../components/CustomMenu';
 import { RootStackScreenProps } from '../types/navigation';
@@ -40,6 +41,7 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
   const setStorePlaying = usePlayerStore(state => state.setIsPlaying);
 
   const toggleLike = useSongsStore(state => state.toggleLike);
+  const addRecentArt = useArtHistoryStore(state => state.addRecentArt);
   const autoHideControls = useSettingsStore(state => state.autoHideControls);
   const setAutoHideControls = useSettingsStore(state => state.setAutoHideControls);
   const animateBackground = useSettingsStore(state => state.animateBackground);
@@ -614,6 +616,7 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
                    try {
                         // Corrected: Pass the full updated song object
                         await queries.updateSong(updatedSong);
+                        addRecentArt(uri);
                    } catch (e) {
                        if (__DEV__) console.error('[NowPlaying] Failed to save cover:', e);
                        // Revert optimistic update if needed, but user just sees error

@@ -1,6 +1,6 @@
 /**
  * LyricFlow - Art History Store (Zustand)
- * Tracks the last 8 custom cover art image URIs
+ * Tracks custom cover art image URIs
  */
 
 import { create } from 'zustand';
@@ -23,8 +23,8 @@ export const useArtHistoryStore = create<ArtHistoryState>()(
         // Remove duplicate if exists and add to start
         const filtered = state.recentArts.filter((art) => art !== uri);
         const newHistory = [uri, ...filtered];
-        // Keep only last 8
-        return { recentArts: newHistory.slice(0, 8) };
+        // Keep full history so older choices never disappear
+        return { recentArts: newHistory };
       }),
       
       removeRecentArt: (uri) => set((state) => ({

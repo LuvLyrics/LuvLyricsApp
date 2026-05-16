@@ -381,7 +381,18 @@ export const AudioDownloaderScreen: React.FC<AudioDownloaderProps> = ({ navigati
 
     // Selection Logic
     const handleLongPress = (song: UnifiedSong) => {
-        toggleSelection(activeTabId, song.id);
+        const allSelectableIds = activeTab.mode === 'bulk'
+            ? (activeTab.bulkItems || []).filter(item => !!item.result?.id).map(item => item.result!.id)
+            : [...activeTab.results, ...(activeTab.remixResults || [])].map(item => item.id);
+
+        if (allSelectableIds.length === 0) {
+            toggleSelection(activeTabId, song.id);
+            return;
+        }
+
+        const hasAllSelected = allSelectableIds.every(id => activeTab.selectedSongs.includes(id));
+        updateTab(activeTabId, { selectedSongs: hasAllSelected ? [] : allSelectableIds });
+        setSelectionMode(true);
     };
 
     // Direct Download Logic

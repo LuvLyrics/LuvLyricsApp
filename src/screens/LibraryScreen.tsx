@@ -425,6 +425,7 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
     if (selectedSongForArt) {
       try {
         await updateSong({ ...selectedSongForArt, coverImageUri: uri, dateModified: new Date().toISOString() });
+        addRecentArt(uri);
         setShowBottomSheet(false); fetchSongs();
       } catch {
         setToast({ visible: true, message: 'Failed to save cover', type: 'error' });
@@ -640,7 +641,7 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
             setToast({ visible: true, message: 'Song updated successfully!', type: 'success' });
         }}
       />
-      <CoverArtSearchScreen visible={showCoverSearch} initialQuery={selectedSongForArt ? `${selectedSongForArt.title} ${selectedSongForArt.artist}` : ''} onClose={() => setShowCoverSearch(false)} onSelect={async (uri) => { setShowCoverSearch(false); if (selectedSongForArt) { try { await updateSong({ ...selectedSongForArt, coverImageUri: uri, dateModified: new Date().toISOString() }); await fetchSongs(); setToast({ visible: true, message: 'Cover art updated!', type: 'success' }); setSelectedSongForArt(null); } catch { setToast({ visible: true, message: 'Failed to save cover', type: 'error' }); } } }} />
+      <CoverArtSearchScreen visible={showCoverSearch} initialQuery={selectedSongForArt ? `${selectedSongForArt.title} ${selectedSongForArt.artist}` : ''} onClose={() => setShowCoverSearch(false)} onSelect={async (uri) => { setShowCoverSearch(false); if (selectedSongForArt) { try { await updateSong({ ...selectedSongForArt, coverImageUri: uri, dateModified: new Date().toISOString() }); addRecentArt(uri); await fetchSongs(); setToast({ visible: true, message: 'Cover art updated!', type: 'success' }); setSelectedSongForArt(null); } catch { setToast({ visible: true, message: 'Failed to save cover', type: 'error' }); } } }} />
       {toast && (<Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />)}
       <DownloadQueueModal visible={showQueueModal} onClose={() => setShowQueueModal(false)} />
       <Modal visible={showEditInfoModal} transparent animationType="fade" onRequestClose={() => setShowEditInfoModal(false)}>
