@@ -473,18 +473,20 @@ export const MiniPlayer: React.FC = () => {
       usePlayerStore.getState().seekTo(timestamp);
   }, [fullLyricExpanded, fullExpansionProgress]);
 
-  const handleIslandSeek = useCallback((time: number) => {
+  const handleIslandSeek = useCallback(async (time: number) => {
     if(player) {
          // Lock updates
         isSeekingRef.current = true;
-        
+
         // Optimistic Update: Set the UI position immediately to the target time
         // This prevents the "jump back" because progress will now be calculated from this time
         // until isSeekingRef is released.
         setOptimizedPosition(time);
 
-        player.seekTo(time);
-        
+        const wasPlaying = usePlayerStore.getState().isPlaying;
+        await player.seekTo(time);
+        if (wasPlaying) player.play();
+
         // Unlock after delay
         if (seekLockTimeout.current) clearTimeout(seekLockTimeout.current);
         seekLockTimeout.current = setTimeout(() => {
@@ -769,8 +771,12 @@ export const MiniPlayer: React.FC = () => {
                                 <SynchronizedLyrics
                                     lyrics={lyricsToUse || []}
                                     currentTime={storePosition}
-                                    onLyricPress={(time) => {
-                                        player?.seekTo(time);
+                                    onLyricPress={async (time) => {
+                                        if (player) {
+                                            const wasPlaying = usePlayerStore.getState().isPlaying;
+                                            await player.seekTo(time);
+                                            if (wasPlaying) player.play();
+                                        }
                                     }}
                                     isUserScrolling={false}
                                     scrollEnabled={false}
