@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-// ITEM_HEIGHT removed as unused
+const LYRIC_LINE_HEIGHT = 68; // fontSize 28 + marginVertical 16*2
 import { useSettingsStore } from '../store/settingsStore';
 
 // ------------------------------------------------------------------
@@ -26,11 +26,13 @@ interface LyricLineProps {
   text: string;
   isActive: boolean;
   isPassed: boolean;
-  onPress: () => void;
+  timestamp: number;
+  onLyricPress: (timestamp: number) => void;
   textStyle?: any;
 }
 
-const LyricLine = React.memo(({ text, isActive, isPassed, onPress, textStyle, songTitle, highlightColor = '#FFD700' }: LyricLineProps & { songTitle?: string, highlightColor?: string }) => {
+const LyricLine = React.memo(({ text, isActive, isPassed, timestamp, onLyricPress, textStyle, songTitle, highlightColor = '#FFD700' }: LyricLineProps & { songTitle?: string, highlightColor?: string }) => {
+  const handlePress = useCallback(() => onLyricPress(timestamp), [onLyricPress, timestamp]);
   // Shared value to drive animations (0 = inactive, 1 = active)
   const activeValue = useSharedValue(isActive ? 1 : 0);
 
@@ -110,7 +112,7 @@ const LyricLine = React.memo(({ text, isActive, isPassed, onPress, textStyle, so
   }, [text, songTitle, highlightColor]);
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={handlePress}>
       <Animated.Text style={[styles.lyricText, textStyle, animatedStyle]}>
         {renderedText}
       </Animated.Text>
@@ -224,22 +226,24 @@ const SynchronizedLyrics: React.FC<SynchronizedLyricsProps> = ({
     }
   }, [activeIndex, isLayoutReady, isUserScrolling, lyrics.length, activeLinePosition]);
 
-  const renderItem = useCallback(({ item, index }: { item: { timestamp: number; text: string }; index: number }) => {
-    const isActive = index === activeIndex;
-    const isPassed = index < activeIndex;
+  const getItemLayout = useCallback((_: unknown, index: number) => ({
+    length: LYRIC_LINE_HEIGHT,
+    offset: topSpacerHeight + index * LYRIC_LINE_HEIGHT,
+    index,
+  }), [topSpacerHeight]);
 
-    return (
-      <LyricLine 
-        text={item.text}
-        isActive={isActive}
-        isPassed={isPassed}
-        onPress={() => onLyricPress(item.timestamp)}
-        textStyle={textStyle}
-        songTitle={songTitle}
-        highlightColor={highlightColor}
-      />
-    );
-  }, [activeIndex, onLyricPress, textStyle, songTitle, highlightColor]);
+  const renderItem = useCallback(({ item, index }: { item: { timestamp: number; text: string }; index: number }) => (
+    <LyricLine
+      text={item.text}
+      isActive={index === activeIndex}
+      isPassed={index < activeIndex}
+      timestamp={item.timestamp}
+      onLyricPress={onLyricPress}
+      textStyle={textStyle}
+      songTitle={songTitle}
+      highlightColor={highlightColor}
+    />
+  ), [activeIndex, onLyricPress, textStyle, songTitle, highlightColor]);
 
   return (
     <Animated.View style={[styles.container, containerStyle]}>
@@ -259,7 +263,13 @@ const SynchronizedLyrics: React.FC<SynchronizedLyricsProps> = ({
           data={lyrics}
           keyExtractor={(item, index) => `${index}_${item.timestamp}`}
           renderItem={renderItem}
+          getItemLayout={getItemLayout}
           scrollEnabled={scrollEnabled}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          initialNumToRender={15}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={Platform.OS === 'android'}
           ListHeaderComponent={
             <View>
                 <View style={{ height: topSpacerHeight }} />

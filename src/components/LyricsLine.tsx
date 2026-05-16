@@ -35,15 +35,15 @@ export const LyricsLine: React.FC<LyricsLineProps> = memo(({
   const lineHeight = LINE_SPACING_MAP[lineSpacing];
 
   const animatedStyle = useAnimatedStyle(() => {
-    const scale = withTiming(isActive ? 1.05 : 0.95, { duration: 300 });
-    const opacity = withTiming(
-      isActive ? 1 : isPrevious ? 0.4 : 0.5 - Math.abs(distanceFromActive) * 0.05,
-      { duration: 300 }
-    );
+    const targetOpacity = isActive
+      ? 1
+      : isPrevious
+        ? 0.4
+        : Math.max(0.5 - Math.abs(distanceFromActive) * 0.05, 0.2);
 
     return {
-      transform: [{ scale }],
-      opacity: Math.max(opacity, 0.2),
+      transform: [{ scale: withTiming(isActive ? 1.05 : 0.95, { duration: 300 }) }],
+      opacity: withTiming(targetOpacity, { duration: 300 }),
     };
   });
 
