@@ -95,6 +95,7 @@ export const MiniPlayer: React.FC = () => {
   const [expanded, setExpanded] = useState(false);
   const [lyricExpanded, setLyricExpanded] = useState(false);
   const [fullLyricExpanded, setFullLyricExpanded] = useState(false);
+  const [lyricExpandedAt, setLyricExpandedAt] = useState(0);
   
   // Animation values
   const expansionProgress = useSharedValue(0); // 0 = collapsed, 1 = tray (190px)
@@ -206,6 +207,13 @@ export const MiniPlayer: React.FC = () => {
 
   // Auto-close removed: Lyrics persist across songs
   // useEffect(() => { ... }, [currentSong?.id, isIsland]);
+
+  // Capture timestamp when any lyric view opens so SynchronizedLyrics can reset its scroll
+  useEffect(() => {
+    if (expanded || lyricExpanded || fullLyricExpanded) {
+      setLyricExpandedAt(Date.now());
+    }
+  }, [expanded, lyricExpanded, fullLyricExpanded]);
 
   // Classic Height Animation
   const animatedIslandStyle = useAnimatedStyle(() => {
@@ -652,12 +660,13 @@ export const MiniPlayer: React.FC = () => {
                         ) : (
                             /* 2. EXPANDED MODE (Half & Full) - Unified FlatList */
                             <View style={styles.expandedLyricsContainer}>
-                                <SynchronizedLyrics 
+                                <SynchronizedLyrics
                                     lyrics={lyricsToUse || []}
                                     currentTime={isSeekingRef.current ? storePosition : storePosition} // Force fresh read
                                     onLyricPress={handleLyricPress}
-                                    isUserScrolling={false} 
+                                    isUserScrolling={false}
                                     scrollEnabled={fullLyricExpanded}
+                                    expandedAt={lyricExpandedAt}
                                     textStyle={styles.expandedLyricText}
                                     activeLinePosition={0.3} 
                                     songTitle={currentSong?.title}
@@ -755,24 +764,21 @@ export const MiniPlayer: React.FC = () => {
                     <GestureDetector gesture={panGesture}>
                         <Animated.View style={[styles.classicLyricsContainer, animatedClassicLyricsStyle]}>
                             {expanded && (
-                                <SynchronizedLyrics 
+                                <SynchronizedLyrics
                                     lyrics={lyricsToUse || []}
                                     currentTime={storePosition}
                                     onLyricPress={(time) => {
-                                        // Optional: Allow seeking in this view? "Not allow manual scrolling" but maybe tap to seek is ok?
-                                        // Island uses handleLyricPress.
-                                        // Spec says: "Auto-sync... Not allow manual scrolling".
-                                        // We'll stick to view-only primarily, but allow tap to seek if user wants.
                                         player?.seekTo(time);
                                     }}
                                     isUserScrolling={false}
-                                    scrollEnabled={false} // "Not allow manual scrolling"
+                                    scrollEnabled={false}
                                     textStyle={styles.expandedLyricText}
                                     activeLinePosition={0.4}
                                     songTitle={currentSong?.title}
                                     highlightColor={gradientColors[0]}
                                     topSpacerHeight={50}
                                     bottomSpacerHeight={50}
+                                    expandedAt={lyricExpandedAt}
                                 />
                             )}
                             {/* Close Indicator */}
