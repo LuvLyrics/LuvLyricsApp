@@ -40,104 +40,65 @@ import * as playlistQueries from '../database/playlistQueries';
 
 // --- Types & Components ---
 
-interface TabBarProps {
+interface ScrollableHeaderProps {
     tabs: SearchTab[];
     activeTabId: string;
     setActiveTab: (id: string) => void;
     closeTab: (id: string) => void;
     createTab: (query: string) => void;
-}
-
-
-const TabBar: React.FC<TabBarProps> = memo(({ tabs, activeTabId, setActiveTab, closeTab, createTab }) => (
-    <View style={styles.tabBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabBarScroll}>
-            {tabs.map(tab => (
-                <Pressable 
-                    key={tab.id}
-                    style={[styles.tabItem, tab.id === activeTabId && styles.activeTabItem]}
-                    onPress={() => setActiveTab(tab.id)}
-                >
-                    <Text style={[styles.tabText, tab.id === activeTabId && styles.activeTabText]} numberOfLines={1}>
-                        {tab.query || 'New Tab'}
-                    </Text>
-                    {tabs.length > 1 && (
-                        <Pressable onPress={() => closeTab(tab.id)} style={styles.closeTabBtn}>
-                            <Ionicons name="close" size={14} color="#999" />
-                        </Pressable>
-                    )}
-                </Pressable>
-            ))}
-            <Pressable style={styles.newTabBtn} onPress={() => createTab('')}>
-                <Ionicons name="add" size={20} color="#fff" />
-            </Pressable>
-        </ScrollView>
-    </View>
-));
-
-interface ScrollableHeaderProps extends TabBarProps {
-    searchMode: 'title' | 'artist';
-    setSearchMode: (mode: 'title' | 'artist') => void;
     selectionMode: boolean;
     setSelectionMode: (mode: boolean) => void;
     activeTabMode: 'search' | 'bulk';
     updateTab: (id: string, updates: Partial<SearchTab>) => void;
 }
 
-const ScrollableHeader: React.FC<ScrollableHeaderProps> = memo(({ 
-    searchMode, setSearchMode, selectionMode, setSelectionMode, 
+// Single compact toolbar: tab pills + 3 micro-icon buttons
+const ScrollableHeader: React.FC<ScrollableHeaderProps> = memo(({
     tabs, activeTabId, setActiveTab, closeTab, createTab,
-    activeTabMode, updateTab 
+    selectionMode, setSelectionMode, activeTabMode, updateTab
 }) => (
-    <View>
-        <View style={styles.headerContainer}>
-            <View style={styles.controlsRow}>
-                <View style={styles.segmentedControl}>
-                    <Pressable 
-                        style={[styles.segmentBtn, searchMode === 'title' && styles.segmentBtnActive]}
-                        onPress={() => setSearchMode('title')}
-                    >
-                        <Text style={[styles.segmentText, searchMode === 'title' && styles.segmentTextActive]}>Title</Text>
-                    </Pressable>
-                    <Pressable 
-                        style={[styles.segmentBtn, searchMode === 'artist' && styles.segmentBtnActive]}
-                        onPress={() => setSearchMode('artist')}
-                    >
-                        <Text style={[styles.segmentText, searchMode === 'artist' && styles.segmentTextActive]}>Artist</Text>
-                    </Pressable>
-                </View>
-
-                <Pressable 
-                    style={[styles.actionIconBtn, selectionMode && styles.actionIconBtnActive]} 
-                    onPress={() => setSelectionMode(!selectionMode)}
+    <View style={styles.toolbarRow}>
+        <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabBarScroll}
+            style={{ flex: 1 }}
+        >
+            {tabs.map(tab => (
+                <Pressable
+                    key={tab.id}
+                    style={[styles.tabItem, tab.id === activeTabId && styles.activeTabItem]}
+                    onPress={() => setActiveTab(tab.id)}
                 >
-                     <Ionicons name={selectionMode ? "checkmark-circle" : "checkmark-circle-outline"} size={20} color={selectionMode ? "#fff" : Colors.primary} />
+                    <Text style={[styles.tabText, tab.id === activeTabId && styles.activeTabText]} numberOfLines={1}>
+                        {tab.query || 'New'}
+                    </Text>
+                    {tabs.length > 1 && (
+                        <Pressable onPress={() => closeTab(tab.id)} style={styles.closeTabBtn}>
+                            <Ionicons name="close" size={11} color="#666" />
+                        </Pressable>
+                    )}
                 </Pressable>
-            </View>
-        </View>
+            ))}
+        </ScrollView>
 
-        <TabBar 
-            tabs={tabs} 
-            activeTabId={activeTabId} 
-            setActiveTab={setActiveTab} 
-            closeTab={closeTab} 
-            createTab={createTab} 
-        />
+        <Pressable style={styles.microBtn} onPress={() => createTab('')}>
+            <Ionicons name="add" size={18} color="#fff" />
+        </Pressable>
 
-        <View style={styles.modeSwitch}>
-            <Pressable 
-                style={[styles.modeBtn, activeTabMode !== 'bulk' && styles.activeModeBtn]}
-                onPress={() => updateTab(activeTabId, { mode: 'search' })}
-            >
-                <Text style={[styles.modeText, activeTabMode !== 'bulk' && styles.activeModeText]}>Search</Text>
-            </Pressable>
-            <Pressable 
-                style={[styles.modeBtn, activeTabMode === 'bulk' && styles.activeModeBtn]}
-                onPress={() => updateTab(activeTabId, { mode: 'bulk' })}
-            >
-                <Text style={[styles.modeText, activeTabMode === 'bulk' && styles.activeModeText]}>Bulk Import</Text>
-            </Pressable>
-        </View>
+        <Pressable
+            style={[styles.microBtn, activeTabMode === 'bulk' && styles.microBtnActive]}
+            onPress={() => updateTab(activeTabId, { mode: activeTabMode === 'bulk' ? 'search' : 'bulk' })}
+        >
+            <Ionicons name={activeTabMode === 'bulk' ? 'layers' : 'layers-outline'} size={17} color={activeTabMode === 'bulk' ? '#C084FC' : '#555'} />
+        </Pressable>
+
+        <Pressable
+            style={[styles.microBtn, selectionMode && styles.microBtnActive]}
+            onPress={() => setSelectionMode(!selectionMode)}
+        >
+            <Ionicons name={selectionMode ? "checkmark-circle" : "checkmark-circle-outline"} size={17} color={selectionMode ? '#fff' : Colors.primary} />
+        </Pressable>
     </View>
 ));
 
@@ -825,21 +786,55 @@ Only provide the JSON array, no other text.`;
 
     return (
         <View style={styles.container}>
-            <LinearGradient colors={['#1F1F1F', '#000']} style={StyleSheet.absoluteFill} />
+            {/* Soft violet gradient morphism — overlapping full-screen washes, no shapes */}
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#040008' }]} />
+            {/* Top-left subtle violet wash */}
+            <LinearGradient
+                colors={['rgba(127,19,236,0.18)', 'transparent']}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0.75, y: 0.65 }}
+            />
+            {/* Bottom-right subtle purple wash */}
+            <LinearGradient
+                colors={['rgba(140,20,255,0.14)', 'transparent']}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 1, y: 1 }}
+                end={{ x: 0.25, y: 0.35 }}
+            />
+            {/* Faint mid-screen bleed */}
+            <LinearGradient
+                colors={['transparent', 'rgba(80,0,180,0.08)', 'transparent']}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0.55 }}
+                end={{ x: 1, y: 0.45 }}
+            />
+            {/* Heavy dark overlay — keeps it mostly black */}
+            <LinearGradient
+                colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+            />
             <SafeAreaView style={styles.safeArea}>
                 
-                {/* Header Section - Fixed Back Button */}
+                {/* Header — back + search with inline Title/Artist toggle */}
                 <View style={styles.header}>
                     <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <Ionicons name="arrow-back" size={22} color="#fff" />
                     </Pressable>
-
-                    {/* Search Input Area - Moved to Header */}
-                    <View style={[styles.searchBarContainer, { flex: 1, marginBottom: 0 }]}>
-                        <Ionicons name="search" size={20} color="#666" style={{marginLeft: 12}} />
+                    <View style={[styles.searchBarContainer, { flex: 1 }]}>
+                        <Pressable
+                            style={styles.searchModePill}
+                            onPress={() => setSearchMode(searchMode === 'title' ? 'artist' : 'title')}
+                        >
+                            <Text style={styles.searchModePillText}>
+                                {searchMode === 'title' ? 'Title' : 'Artist'}
+                            </Text>
+                        </Pressable>
                         <TextInput
                             style={styles.unifiedInput}
-                            placeholder={searchMode === 'title' ? "Search by Song Title..." : "Search by Artist Name..."}
+                            placeholder={searchMode === 'title' ? "Song title..." : "Artist name..."}
                             placeholderTextColor="#666"
                             value={searchMode === 'title' ? titleQuery : artistQuery}
                             onChangeText={(text) => {
@@ -850,14 +845,11 @@ Only provide the JSON array, no other text.`;
                             returnKeyType="search"
                         />
                         {(titleQuery || artistQuery) ? (
-                            <Pressable 
-                                onPress={() => {
-                                    setTitleQuery('');
-                                    setArtistQuery('');
-                                }}
-                                style={{padding: 8}}
+                            <Pressable
+                                onPress={() => { setTitleQuery(''); setArtistQuery(''); }}
+                                style={{ padding: 8 }}
                             >
-                                <Ionicons name="close-circle" size={18} color="#666" />
+                                <Ionicons name="close-circle" size={16} color="#666" />
                             </Pressable>
                         ) : null}
                     </View>
@@ -869,9 +861,7 @@ Only provide the JSON array, no other text.`;
                         <View style={styles.bulkContainer}>
                              {(!activeTab.bulkItems || activeTab.bulkItems.length === 0) ? (
                                 <ScrollView>
-                                    <ScrollableHeader 
-                                        searchMode={searchMode}
-                                        setSearchMode={setSearchMode}
+                                    <ScrollableHeader
                                         selectionMode={selectionMode}
                                         setSelectionMode={setSelectionMode}
                                         tabs={tabs}
@@ -913,9 +903,7 @@ Only provide the JSON array, no other text.`;
                                     <FlatList
                                         data={activeTab.bulkItems}
                                         ListHeaderComponent={
-                                            <BulkHeader 
-                                                searchMode={searchMode}
-                                                setSearchMode={setSearchMode}
+                                            <BulkHeader
                                                 selectionMode={selectionMode}
                                                 setSelectionMode={setSelectionMode}
                                                 tabs={tabs}
@@ -1020,9 +1008,7 @@ Only provide the JSON array, no other text.`;
                         // REGULAR SEARCH VIEW
                         activeTab.isSearching ? (
                         <ScrollView contentContainerStyle={{flexGrow: 1}}>
-                            <ScrollableHeader 
-                                searchMode={searchMode}
-                                setSearchMode={setSearchMode}
+                            <ScrollableHeader
                                 selectionMode={selectionMode}
                                 setSelectionMode={setSelectionMode}
                                 tabs={tabs}
@@ -1042,9 +1028,7 @@ Only provide the JSON array, no other text.`;
                         activeTab.remixResults && activeTab.remixResults.length > 0 ? (
                             <SectionList
                                 ListHeaderComponent={
-                                    <ScrollableHeader 
-                                        searchMode={searchMode}
-                                        setSearchMode={setSearchMode}
+                                    <ScrollableHeader
                                         selectionMode={selectionMode}
                                         setSelectionMode={setSelectionMode}
                                         tabs={tabs}
@@ -1113,9 +1097,7 @@ Only provide the JSON array, no other text.`;
                         ) : (
                             <FlatList
                                 ListHeaderComponent={
-                                    <ScrollableHeader 
-                                        searchMode={searchMode}
-                                        setSearchMode={setSearchMode}
+                                    <ScrollableHeader
                                         selectionMode={selectionMode}
                                         setSelectionMode={setSelectionMode}
                                         tabs={tabs}
@@ -1147,9 +1129,7 @@ Only provide the JSON array, no other text.`;
                         )
                     ) : (
                         <ScrollView contentContainerStyle={{flexGrow: 1}}>
-                            <ScrollableHeader 
-                                searchMode={searchMode}
-                                setSearchMode={setSearchMode}
+                            <ScrollableHeader
                                 selectionMode={selectionMode}
                                 setSelectionMode={setSelectionMode}
                                 tabs={tabs}
@@ -1244,157 +1224,103 @@ const styles = StyleSheet.create({
         paddingTop: 8,
     },
     backBtn: { padding: 8, marginRight: 8 },
-    
-    // Header Redesign
-    headerContainer: {
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 4,
-        backgroundColor: '#000',
-    },
-    unifiedSearchBlock: {
-        gap: 12,
-        marginBottom: 8
-    },
+
+    // Search bar
     searchBarContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1E1E1E',
-        borderRadius: 12,
-        height: 48,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 22,
+        height: 46,
         borderWidth: 1,
-        borderColor: '#333'
+        borderColor: 'rgba(127,19,236,0.25)',
     },
     unifiedInput: {
         flex: 1,
         color: '#fff',
-        fontSize: 16,
+        fontSize: 15,
         height: '100%',
-        paddingHorizontal: 12
+        paddingHorizontal: 10,
     },
-    controlsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 12
-    },
-    segmentedControl: {
-        flex: 1,
-        flexDirection: 'row',
-        backgroundColor: '#1E1E1E',
-        borderRadius: 8,
-        padding: 4,
-        height: 40,
-        gap: 4
-    },
-    segmentBtn: {
-        flex: 1,
-        borderRadius: 6,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    segmentBtnActive: {
-        backgroundColor: '#333'
-    },
-    segmentText: {
-        color: '#666',
-        fontSize: 13,
-        fontWeight: '600'
-    },
-    segmentTextActive: {
-        color: '#fff',
-        fontWeight: 'bold'
-    },
-    actionIconBtn: {
-        width: 40,
-        height: 40,
+    searchModePill: {
+        backgroundColor: 'rgba(127,19,236,0.28)',
         borderRadius: 12,
-        backgroundColor: '#1E1E1E',
+        paddingHorizontal: 11,
+        paddingVertical: 5,
+        marginLeft: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(127,19,236,0.45)',
+    },
+    searchModePillText: {
+        color: '#C084FC',
+        fontSize: 12,
+        fontWeight: '700',
+    },
+
+    // Compact toolbar row: tabs + micro-icon buttons
+    toolbarRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        gap: 6,
+        marginBottom: 3,
+    },
+    microBtn: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.06)',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#333'
+        borderColor: 'rgba(255,255,255,0.08)',
     },
-    
-    // Tab Bar Redesign
-    tabBar: {
-        height: 48,
-        marginBottom: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: '#222'
+    microBtnActive: {
+        backgroundColor: 'rgba(127,19,236,0.32)',
+        borderColor: 'rgba(127,19,236,0.5)',
     },
+
+    // Tab pills
     tabItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        backgroundColor: 'transparent',
-        borderRadius: 20,
-        marginRight: 4,
-        borderWidth: 0,
+        paddingHorizontal: 13,
+        paddingVertical: 6,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 16,
+        marginRight: 6,
+        borderWidth: 1,
+        borderColor: 'transparent',
     },
     activeTabItem: {
-        backgroundColor: '#222',
+        backgroundColor: 'rgba(127,19,236,0.22)',
+        borderColor: 'rgba(127,19,236,0.45)',
     },
     tabText: {
-        color: '#666',
-        fontSize: 14,
-        fontWeight: '600'
+        color: '#555',
+        fontSize: 12,
+        fontWeight: '600',
+        maxWidth: 100,
     },
     activeTabText: {
-        color: Colors.primary,
-        fontWeight: 'bold'
-    },
-    newTabBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: '#1E1E1E',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginLeft: 8
+        color: '#C084FC',
+        fontWeight: '700',
     },
     tabBarScroll: {
-        paddingHorizontal: 8
+        alignItems: 'center',
+        paddingVertical: 3,
     },
     closeTabBtn: {
-        marginLeft: 6
-    },
-    actionIconBtnActive: {
-        backgroundColor: Colors.primary, 
-        borderColor: Colors.primary
+        marginLeft: 5,
     },
     bulkTitleContainer: {
-        paddingHorizontal: 16, 
-        marginBottom: 16
-    },
-
-    
-    // Mode Switcher
-    modeSwitch: {
-        flexDirection: 'row',
-        backgroundColor: '#111',
-        borderRadius: 8,
-        marginHorizontal: 16,
+        paddingHorizontal: 16,
         marginBottom: 16,
-        padding: 4,
-        borderWidth: 1,
-        borderColor: '#333'
     },
-    modeBtn: {
-        flex: 1,
-        paddingVertical: 8,
-        alignItems: 'center',
-        borderRadius: 6
-    },
-    activeModeBtn: {
-        backgroundColor: '#333'
-    },
-    modeText: { color: '#666', fontWeight: '600' },
-    activeModeText: { color: '#fff' },
 
     // Content & Grid
-    content: { flex: 1, backgroundColor: '#000' },
+    content: { flex: 1 },
     gridContent: { padding: 12, paddingBottom: 120 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     statusText: { color: '#666', marginTop: 16, fontSize: 13 },
@@ -1437,8 +1363,8 @@ const styles = StyleSheet.create({
     // Bulk UI
     bulkContainer: { padding: 16, flex: 1 },
     label: { color: '#666', marginBottom: 8, marginTop: 16, fontWeight: '700', fontSize: 11, textTransform: 'uppercase' },
-    playlistInput: { backgroundColor: '#1E1E1E', color: '#fff', padding: 14, borderRadius: 12, fontSize: 16, borderWidth: 1, borderColor: '#333' },
-    jsonInput: { backgroundColor: '#1E1E1E', color: '#ccc', padding: 12, borderRadius: 12, fontSize: 13, height: 160, textAlignVertical: 'top', fontFamily: 'monospace', borderWidth: 1, borderColor: '#333' },
+    playlistInput: { backgroundColor: 'rgba(255,255,255,0.07)', color: '#fff', padding: 14, borderRadius: 18, fontSize: 16, borderWidth: 1, borderColor: 'rgba(127,19,236,0.25)' },
+    jsonInput: { backgroundColor: 'rgba(255,255,255,0.07)', color: '#ccc', padding: 12, borderRadius: 18, fontSize: 13, height: 160, textAlignVertical: 'top', fontFamily: 'monospace', borderWidth: 1, borderColor: 'rgba(127,19,236,0.25)' },
     copyPromptBtn: { alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 16, backgroundColor: '#1E1E1E', borderRadius: 20, marginTop: 12 },
     copyPromptText: { color: Colors.primary, fontSize: 12, fontWeight: '600' },
     parseBtn: { backgroundColor: Colors.primary, padding: 18, borderRadius: 16, alignItems: 'center', marginTop: 32, flexDirection: 'row', justifyContent: 'center', gap: 8 },
