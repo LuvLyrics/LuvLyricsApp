@@ -503,9 +503,16 @@ const LibraryScreen: React.FC<Props> = ({ navigation }) => {
       <Ionicons name="musical-notes-outline" size={80} color={Colors.textSecondary} />
       <Text style={styles.emptyTitle}>No songs yet</Text>
       <Text style={styles.emptySubtitle}>Add your first song with timestamped lyrics</Text>
-      <Pressable style={styles.addButton} onPress={handleAddPress}>
-        <Ionicons name="add" size={20} color="#000" /><Text style={styles.addButtonText}>Add Lyrics</Text>
-      </Pressable>
+      <View style={styles.emptyActionsRow}>
+        <Pressable style={styles.addButton} onPress={handleAddPress}>
+          <Ionicons name="add" size={20} color="#F4F4F5" />
+          <Text style={styles.addButtonText}>Add Lyrics</Text>
+        </Pressable>
+        <Pressable style={styles.downloadButton} onPress={() => (navigation as any).navigate('AudioDownloader')}>
+          <Ionicons name="cloud-download-outline" size={20} color="#EAEAF0" />
+          <Text style={styles.downloadButtonText}>Download Music</Text>
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -695,8 +702,37 @@ const styles = StyleSheet.create({
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100, gap: 12 },
   emptyTitle: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary, marginTop: 12 },
   emptySubtitle: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', maxWidth: 250 },
-  addButton: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, marginTop: 20 },
-  addButtonText: { fontSize: 14, fontWeight: '600', color: '#000' },
+  emptyActionsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 20, flexWrap: 'wrap' },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 24,
+    minHeight: 46,
+    minWidth: 150,
+  },
+  addButtonText: { fontSize: 14, fontWeight: '600', color: '#F4F4F5' },
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 24,
+    minHeight: 46,
+    minWidth: 150,
+  },
+  downloadButtonText: { fontSize: 14, fontWeight: '600', color: '#EAEAF0' },
   fab: { position: 'absolute', bottom: 180, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
   listItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, marginBottom: 8, gap: 12 },
   listItemThumbnail: { width: 50, height: 50, borderRadius: 6, overflow: 'hidden', backgroundColor: '#2C2C2E' },
