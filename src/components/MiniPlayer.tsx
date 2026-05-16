@@ -334,13 +334,15 @@ export const MiniPlayer: React.FC = () => {
     }
   };
 
-  const handleSeekPress = (e: any) => {
+  const handleSeekPress = async (e: any) => {
       e.stopPropagation();
       if (!player || storeDuration <= 0 || progressBarWidth <= 0) return;
       const { locationX } = e.nativeEvent;
       const percentage = locationX / progressBarWidth;
       const seekTime = percentage * storeDuration;
-      player.seekTo(seekTime);
+      const wasPlaying = usePlayerStore.getState().isPlaying;
+      await player.seekTo(seekTime);
+      if (wasPlaying) player.play();
   };
 
   const panGesture = Gesture.Pan()

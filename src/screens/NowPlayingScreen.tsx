@@ -402,9 +402,11 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const handleScrub = useCallback((seconds: number) => {
+  const handleScrub = useCallback(async (seconds: number) => {
     if (player) {
-      player.seekTo(seconds);
+      const wasPlaying = usePlayerStore.getState().isPlaying;
+      await player.seekTo(seconds);
+      if (wasPlaying) player.play();
     }
   }, [player]);
 
