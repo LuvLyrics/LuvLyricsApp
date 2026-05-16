@@ -450,7 +450,7 @@ class DesktopBridgeService {
 
   private async serveFile(socket: any, fileUri: string, contentType: string): Promise<void> {
     try {
-      const FileSystem = require('expo-file-system/legacy');
+      const FileSystem = require('expo-file-system');
       const info = await FileSystem.getInfoAsync(fileUri);
       if (!info.exists) {
         socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
