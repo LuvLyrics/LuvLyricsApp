@@ -1,12 +1,11 @@
-
-import React, { useEffect, useRef, useCallback } from 'react';
-import { View, Dimensions, Text, Pressable, StyleSheet, Platform, LayoutChangeEvent } from 'react-native';
-import { FlatList } from 'react-native';
+import React, { useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { View, Dimensions, Text, Pressable, StyleSheet, LayoutChangeEvent } from 'react-native';
+import { FlashList as FlashListRaw, FlashListRef } from '@shopify/flash-list';
+const FlashList = FlashListRaw as any;
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withSpring,
   interpolateColor,
   interpolate,
   Extrapolation
@@ -31,25 +30,29 @@ interface LyricLineProps {
   onLyricPress: (timestamp: number) => void;
   onMeasured: (index: number, height: number) => void;
   textStyle?: any;
+  songTitle?: string;
+  highlightColor?: string;
 }
 
-const LyricLine = React.memo(({ text, isActive, isPassed, timestamp, index, onLyricPress, onMeasured, textStyle, songTitle, highlightColor = '#FFD700' }: LyricLineProps & { songTitle?: string, highlightColor?: string }) => {
+const LyricLine = React.memo(({ text, isActive, isPassed, timestamp, index, onLyricPress, onMeasured, textStyle, songTitle, highlightColor = '#FFD700' }: LyricLineProps) => {
   const handlePress = useCallback(() => onLyricPress(timestamp), [onLyricPress, timestamp]);
+  
+  // Debounce layout measurement to avoid thrashing during scroll
+  const lastHeightRef = useRef<number>(0);
   const handleLayout = useCallback((e: LayoutChangeEvent) => {
-    onMeasured(index, e.nativeEvent.layout.height);
+    const height = e.nativeEvent.layout.height;
+    if (Math.abs(lastHeightRef.current - height) > 1) {
+      lastHeightRef.current = height;
+      onMeasured(index, height);
+    }
   }, [onMeasured, index]);
 
   // Shared value to drive animations (0 = inactive, 1 = active)
   const activeValue = useSharedValue(isActive ? 1 : 0);
 
   useEffect(() => {
-    // Apple Music style: Smooth spring-based transition
-    activeValue.value = withSpring(isActive ? 1 : 0, {
-       mass: 1,
-       damping: 15,
-       stiffness: 100,
-       overshootClamping: false
-    });
+    // Use timing instead of spring for smoother, lighter animations
+    activeValue.value = withTiming(isActive ? 1 : 0, { duration: 200 });
   }, [isActive, activeValue]);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -68,8 +71,8 @@ const LyricLine = React.memo(({ text, isActive, isPassed, timestamp, index, onLy
     };
   });
 
-  // Phrase Matching Logic - "Exact Match Like Dynamic Island"
-  const renderedText = React.useMemo(() => {
+  // Phrase Matching Logic - memoized to avoid recalculation on every frame
+  const renderedText = useMemo(() => {
       if (!songTitle) return text;
 
       const cleanText = text.replace(/\s+/g, ' ');
@@ -110,7 +113,7 @@ const LyricLine = React.memo(({ text, isActive, isPassed, timestamp, index, onLy
 });
 
 // ------------------------------------------------------------------
-// Step 2: The Synchronized FlatList
+// Step 2: The Synchronized FlashList
 // ------------------------------------------------------------------
 
 interface SynchronizedLyricsProps {
@@ -130,7 +133,11 @@ interface SynchronizedLyricsProps {
   expandedAt?: number; // timestamp (Date.now()) when panel opened — resets initial scroll
 }
 
-const SynchronizedLyrics: React.FC<SynchronizedLyricsProps> = ({
+export interface SynchronizedLyricsRef {
+  scrollToIndex: (params: { index: number; animated?: boolean; viewPosition?: number }) => void;
+}
+
+const SynchronizedLyrics = forwardRef<SynchronizedLyricsRef, SynchronizedLyricsProps>(({
   lyrics,
   currentTime,
   onLyricPress,
@@ -145,8 +152,14 @@ const SynchronizedLyrics: React.FC<SynchronizedLyricsProps> = ({
   topSpacerHeight = SCREEN_HEIGHT * 0.4,
   bottomSpacerHeight = SCREEN_HEIGHT * 0.4,
   expandedAt = 0,
-}) => {
-  const flatListRef = useRef<FlatList>(null);
+}, ref) => {
+  const flashListRef = useRef<FlashListRef<{ timestamp: number; text: string }>>(null);
+
+  useImperativeHandle(ref, () => ({
+    scrollToIndex: (params) => {
+      flashListRef.current?.scrollToIndex(params);
+    },
+  }));
   const [isLayoutReady, setIsLayoutReady] = React.useState(false);
   const hasInitialScrolled = useRef(false);
   const prevExpandedAt = useRef(expandedAt);
@@ -181,10 +194,41 @@ const SynchronizedLyrics: React.FC<SynchronizedLyricsProps> = ({
 
   const effectiveTime = currentTime + lyricsDelay;
 
-  const activeIndex = lyrics.findIndex((line, i) => {
-    const nextLine = lyrics[i + 1];
-    return effectiveTime >= line.timestamp && (!nextLine || effectiveTime < nextLine.timestamp);
-  });
+  // Optimized active index: forward scan from current instead of full findIndex
+  const activeIndexRef = useRef(-1);
+  const activeIndex = useMemo(() => {
+    const prev = activeIndexRef.current;
+    // If we have a valid previous index, try to step forward
+    if (prev >= 0 && prev < lyrics.length) {
+      const nextLine = lyrics[prev + 1];
+      if (nextLine && effectiveTime >= nextLine.timestamp) {
+        activeIndexRef.current = prev + 1;
+        return prev + 1;
+      }
+      if (effectiveTime >= lyrics[prev].timestamp) {
+        return prev;
+      }
+    }
+    // Fallback: binary search since timestamps are sorted
+    let left = 0;
+    let right = lyrics.length - 1;
+    let result = -1;
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const nextLine = lyrics[mid + 1];
+      if (effectiveTime >= lyrics[mid].timestamp && (!nextLine || effectiveTime < nextLine.timestamp)) {
+        result = mid;
+        break;
+      }
+      if (effectiveTime < lyrics[mid].timestamp) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
+    }
+    activeIndexRef.current = result;
+    return result;
+  }, [effectiveTime, lyrics]);
 
   const containerOpacity = useSharedValue(1);
 
@@ -200,13 +244,13 @@ const SynchronizedLyrics: React.FC<SynchronizedLyricsProps> = ({
       prevExpandedAt.current = expandedAt;
     }
 
-    if (!isLayoutReady || isUserScrolling || !flatListRef.current) return;
+    if (!isLayoutReady || isUserScrolling || !flashListRef.current) return;
     if (activeIndex < 0 || activeIndex >= lyrics.length) return;
 
     const performScroll = (isInitial = false) => {
-      if (!flatListRef.current) return;
+      if (!flashListRef.current) return;
       try {
-        flatListRef.current.scrollToIndex({
+        flashListRef.current.scrollToIndex({
           index: activeIndex,
           animated: !isInitial,
           viewPosition: activeLinePosition,
@@ -229,27 +273,28 @@ const SynchronizedLyrics: React.FC<SynchronizedLyricsProps> = ({
     }
   }, [activeIndex, isLayoutReady, isUserScrolling, lyrics.length, activeLinePosition, expandedAt]);
 
-  // getItemLayout uses measured heights — accurate for wrapped lines
-  const getItemLayout = useCallback((_: unknown, idx: number) => ({
-    length: itemHeights.current[idx] ?? LYRIC_LINE_HEIGHT,
-    offset: itemOffsets.current[idx] ?? (topSpacerHeight + idx * LYRIC_LINE_HEIGHT),
-    index: idx,
-  }), [topSpacerHeight]);
+  // Stable ref for activeIndex so renderItem doesn't need it in deps
+  const activeIndexLiveRef = useRef(activeIndex);
+  activeIndexLiveRef.current = activeIndex;
 
-  const renderItem = useCallback(({ item, index }: { item: { timestamp: number; text: string }; index: number }) => (
-    <LyricLine
-      text={item.text}
-      isActive={index === activeIndex}
-      isPassed={index < activeIndex}
-      timestamp={item.timestamp}
-      index={index}
-      onLyricPress={onLyricPress}
-      onMeasured={handleItemMeasured}
-      textStyle={textStyle}
-      songTitle={songTitle}
-      highlightColor={highlightColor}
-    />
-  ), [activeIndex, onLyricPress, handleItemMeasured, textStyle, songTitle, highlightColor]);
+  // Stable renderItem - does NOT depend on activeIndex
+  const renderItem = useCallback(({ item, index }: { item: { timestamp: number; text: string }; index: number }) => {
+    const currentActive = activeIndexLiveRef.current;
+    return (
+      <LyricLine
+        text={item.text}
+        isActive={index === currentActive}
+        isPassed={index < currentActive}
+        timestamp={item.timestamp}
+        index={index}
+        onLyricPress={onLyricPress}
+        onMeasured={handleItemMeasured}
+        textStyle={textStyle}
+        songTitle={songTitle}
+        highlightColor={highlightColor}
+      />
+    );
+  }, [onLyricPress, handleItemMeasured, textStyle, songTitle, highlightColor]);
 
   return (
     <Animated.View style={[styles.container, containerStyle]}>
@@ -258,24 +303,20 @@ const SynchronizedLyrics: React.FC<SynchronizedLyricsProps> = ({
         maskElement={
           <LinearGradient
             colors={['transparent', 'black', 'black', 'transparent']}
-            locations={[0, 0.15, 0.85, 1]}
+            locations={[0, 0.12, 0.88, 1]}
             style={StyleSheet.absoluteFill}
           />
         }
       >
-        <FlatList
-          ref={flatListRef}
+        <FlashList
+          ref={flashListRef}
           onLayout={() => setIsLayoutReady(true)}
           data={lyrics}
-          keyExtractor={(item, idx) => `${idx}_${item.timestamp}`}
+          keyExtractor={(item, idx) => `lyric_${idx}`}
           renderItem={renderItem}
-          getItemLayout={getItemLayout}
           scrollEnabled={scrollEnabled}
-          maxToRenderPerBatch={5}
-          windowSize={5}
-          initialNumToRender={15}
-          updateCellsBatchingPeriod={50}
-          removeClippedSubviews={Platform.OS === 'android'}
+          estimatedItemSize={LYRIC_LINE_HEIGHT}
+          extraData={activeIndex}
           ListHeaderComponent={
             <View>
               <View style={{ height: topSpacerHeight }} />
@@ -289,16 +330,11 @@ const SynchronizedLyrics: React.FC<SynchronizedLyricsProps> = ({
             setTimeout(() => onScrollStateChange?.(false), 2000);
           }}
           showsVerticalScrollIndicator={false}
-          onScrollToIndexFailed={(info) => {
-            new Promise(resolve => setTimeout(resolve, 500)).then(() => {
-              flatListRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: activeLinePosition });
-            });
-          }}
         />
       </MaskedView>
     </Animated.View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -316,9 +352,10 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     marginVertical: 16,
     paddingHorizontal: 32,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    // Soft white glow for professional blurred text look
+    textShadowColor: 'rgba(255,255,255,0.12)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
   }
 });
 

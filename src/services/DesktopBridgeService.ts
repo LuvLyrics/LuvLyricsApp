@@ -289,7 +289,7 @@ class DesktopBridgeService {
     this.desktopConnected = true;
     this.lastDesktopHeartbeatAt = Date.now();
     this.clearPendingHandoff();
-    this.logDesktopEvent('desktop_connected');
+    // this.logDesktopEvent('desktop_connected');
   }
 
   private markDesktopHeartbeat(): void {
@@ -426,78 +426,75 @@ class DesktopBridgeService {
 
   async start(): Promise<void> {
     if (this.running) return;
-
-    const tcpSocket = loadTcpSocket();
-    if (!tcpSocket) {
-      this.running = false;
-      return;
-    }
-
-    console.log('[DesktopBridge] Starting…');
-
-    try {
-      await this.ensureDeviceIdentity();
-      await this.startWsServer(tcpSocket);
-      await this.startHttpServer(tcpSocket);
-    } catch (error) {
-      this.running = false;
-      this.wsServer?.close?.();
-      this.wsServer = null;
-      this.httpServer?.close?.();
-      this.httpServer = null;
-      this.clients.clear();
-      this.logServerError('Bridge startup', error);
-      console.warn(
-        '[DesktopBridge] Ports 8765/8766 are busy. Close older app/dev-client instance and relaunch.'
-      );
-      return;
-    }
-
-    this.running = true;
-    this.startHeartbeatWatchdog();
-    this.startIpWatchdog();
-    this.appStateSub = AppState.addEventListener('change', this.handleAppStateChange);
-    await this.startMdns('restart');
-    this.subscribeToStores();
-
-    console.log('[DesktopBridge] Started on ports', WS_PORT, HTTP_PORT);
+    // Desktop bridge temporarily disabled
+    // const tcpSocket = loadTcpSocket();
+    // if (!tcpSocket) {
+    //   this.running = false;
+    //   return;
+    // }
+    // console.log('[DesktopBridge] Starting…');
+    // try {
+    //   await this.ensureDeviceIdentity();
+    //   await this.startWsServer(tcpSocket);
+    //   await this.startHttpServer(tcpSocket);
+    // } catch (error) {
+    //   this.running = false;
+    //   this.wsServer?.close?.();
+    //   this.wsServer = null;
+    //   this.httpServer?.close?.();
+    //   this.httpServer = null;
+    //   this.clients.clear();
+    //   this.logServerError('Bridge startup', error);
+    //   console.warn(
+    //     '[DesktopBridge] Ports 8765/8766 are busy. Close older app/dev-client instance and relaunch.'
+    //   );
+    //   return;
+    // }
+    // this.running = true;
+    // this.startHeartbeatWatchdog();
+    // this.startIpWatchdog();
+    // this.appStateSub = AppState.addEventListener('change', this.handleAppStateChange);
+    // await this.startMdns('restart');
+    // this.subscribeToStores();
+    // console.log('[DesktopBridge] Started on ports', WS_PORT, HTTP_PORT);
   }
 
   stop(): void {
-    this.running = false;
-    this.stopHeartbeatWatchdog();
-    this.stopIpWatchdog();
-    this.clearPendingHandoff();
-    this.desktopConnected = false;
-    this.lastDesktopHeartbeatAt = 0;
-    this.bridgeSource = 'phone';
-    this.latestDesktopPosition = null;
-    this.desktopWasPlaying = false;
-    this.appStateSub?.remove?.();
-    this.appStateSub = null;
-    this.playerUnsubscribe?.();
-    this.playerUnsubscribe = null;
-    this.downloadUnsubscribe?.();
-    this.downloadUnsubscribe = null;
+    // Desktop bridge temporarily disabled
+    // this.running = false;
+    // this.stopHeartbeatWatchdog();
+    // this.stopIpWatchdog();
+    // this.clearPendingHandoff();
+    // this.desktopConnected = false;
+    // this.lastDesktopHeartbeatAt = 0;
+    // this.bridgeSource = 'phone';
+    // this.latestDesktopPosition = null;
+    // this.desktopWasPlaying = false;
+    // this.appStateSub?.remove?.();
+    // this.appStateSub = null;
+    // this.playerUnsubscribe?.();
+    // this.playerUnsubscribe = null;
+    // this.downloadUnsubscribe?.();
+    // this.downloadUnsubscribe = null;
     this.wsServer?.close();
-    this.wsServer = null;
-    this.httpServer?.close();
-    this.httpServer = null;
-    if (this.zeroconf) {
-      try {
-        if (Platform.OS === 'android') {
-          this.zeroconf.unpublishService(this.deviceName, ImplType.DNSSD);
-        } else {
-          this.zeroconf.unpublishService(this.deviceName);
-        }
-      } catch (error) {
-        console.warn('[DesktopBridge] Failed to unpublish mDNS service:', error);
-      }
-      this.zeroconf.removeDeviceListeners?.();
-      this.zeroconf = null;
-    }
-    this.clients.clear();
-    console.log('[DesktopBridge] Stopped');
+    // this.wsServer = null;
+    // this.httpServer?.close();
+    // this.httpServer = null;
+    // if (this.zeroconf) {
+    //   try {
+    //     if (Platform.OS === 'android') {
+    //       this.zeroconf.unpublishService(this.deviceName, ImplType.DNSSD);
+    //     } else {
+    //       this.zeroconf.unpublishService(this.deviceName);
+    //     }
+    //   } catch (error) {
+    //     console.warn('[DesktopBridge] Failed to unpublish mDNS service:', error);
+    //   }
+    //   this.zeroconf.removeDeviceListeners?.();
+    //   this.zeroconf = null;
+    // }
+    // this.clients.clear();
+    // console.log('[DesktopBridge] Stopped');
   }
 
   // ── WebSocket server ──────────────────────────────────────────────────────
@@ -509,7 +506,7 @@ class DesktopBridgeService {
       const id = ++this.clientCounter;
       const client: WsClient = { socket, handshaken: false, buffer: Buffer.alloc(0) };
       this.clients.set(id, client);
-      console.log('[DesktopBridge] Client connected:', id);
+      // console.log('[DesktopBridge] Client connected:', id);
 
       socket.on('data', (data: Buffer) => {
         client.buffer = Buffer.concat([client.buffer, data]);
@@ -593,7 +590,7 @@ class DesktopBridgeService {
     this.sendToClient(client, this.buildStateMessage(state));
     this.markDesktopConnected();
 
-    console.log('[DesktopBridge] Handshake complete for client', id);
+    // console.log('[DesktopBridge] Handshake complete for client', id);
   }
 
   private sendToClient(client: WsClient, msg: string): void {

@@ -98,12 +98,14 @@ export const MiniPlayer: React.FC = () => {
   const [expanded, setExpanded] = useState(false);
   const [lyricExpanded, setLyricExpanded] = useState(false);
   const [fullLyricExpanded, setFullLyricExpanded] = useState(false);
+  const [classicFullExpanded, setClassicFullExpanded] = useState(false);
   const [lyricExpandedAt, setLyricExpandedAt] = useState(0);
   
   // Animation values
-  const expansionProgress = useSharedValue(0); // 0 = collapsed, 1 = tray (190px)
-  const lyricExpansionProgress = useSharedValue(0); // 0 = tray, 1 = half screen
-  const fullExpansionProgress = useSharedValue(0); // 0 = half screen, 1 = full screen (nav-bar level)
+  const expansionProgress = useSharedValue(0); // 0 = collapsed, 1 = half-opened (classic) or tray (island)
+  const lyricExpansionProgress = useSharedValue(0); // 0 = tray, 1 = half screen (island)
+  const fullExpansionProgress = useSharedValue(0); // 0 = half screen, 1 = full screen (island)
+  const classicFullProgress = useSharedValue(0); // 0 = half-opened, 1 = 95% full (classic only)
   
   const isIsland = miniPlayerStyle === 'island';
   
@@ -214,10 +216,10 @@ export const MiniPlayer: React.FC = () => {
 
   // Capture timestamp when any lyric view opens so SynchronizedLyrics can reset its scroll
   useEffect(() => {
-    if (expanded || lyricExpanded || fullLyricExpanded) {
+    if (expanded || lyricExpanded || fullLyricExpanded || classicFullExpanded) {
       setLyricExpandedAt(Date.now());
     }
-  }, [expanded, lyricExpanded, fullLyricExpanded]);
+  }, [expanded, lyricExpanded, fullLyricExpanded, classicFullExpanded]);
 
   // Classic Height Animation
   const animatedIslandStyle = useAnimatedStyle(() => {
@@ -264,12 +266,21 @@ export const MiniPlayer: React.FC = () => {
     };
   });
 
-  // Classic Height Animation
+  // Classic Height Animation — three stages: collapsed → half (50%) → full (95%)
   const animatedClassicStyle = useAnimatedStyle(() => {
     if (isIsland) return {};
-    return {
-      height: interpolate(expansionProgress.value, [0, 1], [70, screenHeight * 0.5], Extrapolation.CLAMP),
-    };
+    const halfHeight = screenHeight * 0.5;
+    const fullHeight = screenHeight * 0.915;
+    const currentHeight = interpolate(
+      classicFullProgress.value,
+      [0, 1],
+      [
+        interpolate(expansionProgress.value, [0, 1], [70, halfHeight], Extrapolation.CLAMP),
+        fullHeight
+      ],
+      Extrapolation.CLAMP
+    );
+    return { height: currentHeight };
   });
   
   // Classic Lyrics Opacity (Expansion * Transition)
@@ -359,11 +370,28 @@ export const MiniPlayer: React.FC = () => {
 
   const panGesture = Gesture.Pan()
     .activeOffsetY([-5, 5])
+    .activeOffsetX([-80, 80])
     .simultaneousWithExternalGesture()
     .onUpdate((event: any) => {
+      // Horizontal swipe detection (classic full mode) — don't animate anything, just let it happen
+      const isHorizontal = Math.abs(event.translationX) > Math.abs(event.translationY);
+      if (!isIsland && expanded && classicFullExpanded && isHorizontal) {
+        return; // Skip vertical animation updates during horizontal swipe
+      }
+
       if (!isIsland && expanded) {
-          // Classic Mode Swipe Down Logic
-          // No need for complex progress, just detect intent
+        // Classic Mode: two-stage expansion (half → full)
+        if (!classicFullExpanded) {
+          if (event.translationY < 0) {
+            // Swiping up from half → preview full
+            classicFullProgress.value = Math.min(Math.abs(event.translationY) / 200, 1);
+          }
+        } else {
+          if (event.translationY > 0) {
+            // Swiping down from full → preview half
+            classicFullProgress.value = 1 - Math.min(event.translationY / 200, 1);
+          }
+        }
       } else if (expanded) {
         if (!lyricExpanded && !fullLyricExpanded) {
           if (event.translationY > 0) {
@@ -386,19 +414,58 @@ export const MiniPlayer: React.FC = () => {
       }
     })
     .onEnd((event: any) => {
+      // Check horizontal swipe FIRST (classic full mode)
+      const isHorizontal = Math.abs(event.translationX) > Math.abs(event.translationY);
+      if (!isIsland && expanded && classicFullExpanded && isHorizontal) {
+        const velocityX = event.velocityX;
+        const translationX = event.translationX;
+
+        if (translationX < -60 || velocityX < -600) {
+          // Swipe left → next song
+          runOnJS(skipForward)();
+          return;
+        } else if (translationX > 60 || velocityX > 600) {
+          // Swipe right → previous song
+          runOnJS(skipBackward)();
+          return;
+        }
+      }
+
       if (!isIsland && expanded) {
-          // Classic Close on Swipe Down
-          if (event.translationY > 50 || event.velocityY > 500) {
-               expansionProgress.value = withSpring(0);
-               lyricExpansionProgress.value = withSpring(0);
-               fullExpansionProgress.value = withSpring(0);
-               runOnJS(setExpanded)(false);
-               runOnJS(setLyricExpanded)(false);
-               runOnJS(setFullLyricExpanded)(false);
+        const velocity = event.velocityY;
+        const translation = event.translationY;
+
+        if (!classicFullExpanded) {
+          // Half-opened state
+          if (translation < -50 || velocity < -500) {
+            // Swipe up → go full
+            classicFullProgress.value = withSpring(1);
+            runOnJS(setClassicFullExpanded)(true);
+          } else if (translation > 50 || velocity > 500) {
+            // Swipe down → close completely
+            expansionProgress.value = withSpring(0);
+            classicFullProgress.value = withSpring(0);
+            runOnJS(setExpanded)(false);
+            runOnJS(setClassicFullExpanded)(false);
           } else {
-               // Snap back if not enough drag
-               expansionProgress.value = withSpring(1);
+            // Snap back to half
+            expansionProgress.value = withSpring(1);
+            classicFullProgress.value = withSpring(0);
           }
+        } else {
+          // Fully expanded state
+          if (translation > 50 || velocity > 500) {
+            // Swipe down → go back to half
+            classicFullProgress.value = withSpring(0);
+            runOnJS(setClassicFullExpanded)(false);
+          } else if (translation < -50 || velocity < -500) {
+            // Swipe up more → snap back to full (already full)
+            classicFullProgress.value = withSpring(1);
+          } else {
+            // Snap back to full
+            classicFullProgress.value = withSpring(1);
+          }
+        }
       } else if (expanded) {
         const velocity = event.velocityY;
         const translation = event.translationY;
@@ -439,9 +506,11 @@ export const MiniPlayer: React.FC = () => {
       expansionProgress.value = withSpring(0);
       lyricExpansionProgress.value = withSpring(0);
       fullExpansionProgress.value = withSpring(0);
+      classicFullProgress.value = withSpring(0);
       setExpanded(false);
       setLyricExpanded(false);
       setFullLyricExpanded(false);
+      setClassicFullExpanded(false);
       return;
     }
     
@@ -460,9 +529,11 @@ export const MiniPlayer: React.FC = () => {
       expansionProgress.value = withSpring(0);
       lyricExpansionProgress.value = withSpring(0);
       fullExpansionProgress.value = withSpring(0);
+      classicFullProgress.value = withSpring(0);
       setExpanded(false);
       setLyricExpanded(false);
       setFullLyricExpanded(false);
+      setClassicFullExpanded(false);
     }
   };
 
@@ -702,13 +773,13 @@ export const MiniPlayer: React.FC = () => {
             </View>
         ) : (
             // COLLAPSED / CLASSIC VIEW
-            <>
-                <View style={{ 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    height: 70, 
-                    paddingHorizontal: 16, 
-                    width: '100%' 
+            <View style={{ width: '100%', height: '100%' }}>
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    height: 70,
+                    paddingHorizontal: 16,
+                    width: '100%'
                 }}>
                     {/* Cover Art - PRESSABLE -> Opens Full Player */}
                     <Pressable onPress={(e) => { e.stopPropagation(); openNowPlaying(); }}>
@@ -768,37 +839,35 @@ export const MiniPlayer: React.FC = () => {
                 </View>
 
                 {/* Classic Expanded Lyrics View */}
-                {!isIsland && (
+                {!isIsland && expanded && (
                     <GestureDetector gesture={panGesture}>
                         <Animated.View style={[styles.classicLyricsContainer, animatedClassicLyricsStyle]}>
-                            {expanded && (
-                                <SynchronizedLyrics
-                                    lyrics={lyricsToUse || []}
-                                    currentTime={storePosition}
-                                    onLyricPress={async (time) => {
-                                        if (player) {
-                                            const wasPlaying = usePlayerStore.getState().isPlaying;
-                                            await player.seekTo(time);
-                                            if (wasPlaying) player.play();
-                                        }
-                                    }}
-                                    isUserScrolling={false}
-                                    scrollEnabled={false}
-                                    textStyle={styles.expandedLyricText}
-                                    activeLinePosition={0.4}
-                                    songTitle={currentSong?.title}
-                                    highlightColor={gradientColors[0]}
-                                    topSpacerHeight={50}
-                                    bottomSpacerHeight={50}
-                                    expandedAt={lyricExpandedAt}
-                                />
-                            )}
+                            <SynchronizedLyrics
+                                lyrics={lyricsToUse || []}
+                                currentTime={storePosition}
+                                onLyricPress={async (time) => {
+                                    if (player) {
+                                        const wasPlaying = usePlayerStore.getState().isPlaying;
+                                        await player.seekTo(time);
+                                        if (wasPlaying) player.play();
+                                    }
+                                }}
+                                isUserScrolling={false}
+                                scrollEnabled={false}
+                                textStyle={styles.expandedLyricText}
+                                activeLinePosition={0.4}
+                                songTitle={currentSong?.title}
+                                highlightColor={gradientColors[0]}
+                                topSpacerHeight={50}
+                                bottomSpacerHeight={50}
+                                expandedAt={lyricExpandedAt}
+                            />
                             {/* Close Indicator */}
                              <View style={styles.dragHandle} />
                         </Animated.View>
                     </GestureDetector>
                 )}
-            </>
+            </View>
         )}
       </AnimatedPressable>
     </View>

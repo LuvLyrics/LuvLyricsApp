@@ -21,7 +21,7 @@ import { CoverArtSearchScreen } from './CoverArtSearchScreen'; // Import the new
 // Toast removed as unused
 import { useSettingsStore } from '../store/settingsStore';
 import { RotatingVinyl } from '../components/VinylRecord';
-import SynchronizedLyrics from '../components/SynchronizedLyrics';
+import SynchronizedLyrics, { SynchronizedLyricsRef } from '../components/SynchronizedLyrics';
 const { Gesture, GestureDetector } = GestureHandler;
 const { width } = Dimensions.get('window');
 
@@ -48,8 +48,7 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
   const setAnimateBackground = useSettingsStore(state => state.setAnimateBackground);
   const { songId } = route.params;
   
-  const flatListRef = useRef<any>(null);
-  const contentHeightRef = useRef(0);
+  const flatListRef = useRef<SynchronizedLyricsRef>(null);
   const activeLoadSongIdRef = useRef<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<{ x: number, y: number } | undefined>(undefined);
@@ -338,36 +337,24 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
         }
     }
 
-    // SCROLL LOGIC
+    // LINEAR LYRICS SCROLL LOGIC
     // âœ… Skip auto-scroll if user is interacting
-    if (isLinear && flatListRef.current && contentHeightRef.current > 0 && !isUserScrolling.current) {
-        // Precise Layout Calculation
-        const HEADER_HEIGHT = 420; // 300 (Spacer) + 20 (Margin) + 100 (PaddingTop)
-        const FOOTER_HEIGHT = 450; // 250 (PaddingBottom) + 200 (ListFooter)
-        const totalContentHeight = contentHeightRef.current;
-        const textHeight = Math.max(0, totalContentHeight - HEADER_HEIGHT - FOOTER_HEIGHT);
-        
-        // Calculate Y position of the "Active Point" within the full content
-        // We assume plain lyrics are distributed evenly across the text height
+    if (isLinear && flatListRef.current && !isUserScrolling.current) {
+        // Estimate scroll position based on song progress for smooth teleprompter scrolling
         const progress = Math.min(1, Math.max(0, storePosition / (storeDuration || 180)));
-        const activeY = HEADER_HEIGHT + (textHeight * progress);
+        const estimatedIndex = Math.floor(progress * (processedLyrics.length - 1));
         
-        // Calculate Target Scroll Offset to center activeY on screen
-        const screenHeight = Dimensions.get('window').height;
-        const targetOffset = activeY - (screenHeight * 0.4); // Position at 40% down from top
-        
-        flatListRef.current.scrollToOffset({
-             offset: Math.max(0, targetOffset),
-             animated: true // smooth interpolation
+        flatListRef.current.scrollToIndex({
+             index: estimatedIndex,
+             animated: true,
+             viewPosition: 0.4, // Position at 40% down from top
         });
-        // Note: We do NOT set activeLyricIndex here. 
-        // We let the onScroll event handle the highlighting based on visual position.
         return;
     }
 
     // STANDARD SYNCED SCROLL (Jump to line)
     // Handled internally by SynchronizedLyrics component now.
-  }, [storePosition, currentSong, processedLyrics, isLinear, activeLyricIndex, flatListRef, contentHeightRef, isUserScrolling, setActiveLyricIndex, storeDuration]);
+  }, [storePosition, currentSong, processedLyrics, isLinear, activeLyricIndex, flatListRef, isUserScrolling, setActiveLyricIndex, storeDuration]);
 
   // âœ… Playback Controls
   const playButtonScale = useSharedValue(1);
@@ -635,12 +622,13 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
        <View style={styles.contentArea}>
            {showLyrics ? (
              // Lyrics List
-          <SynchronizedLyrics 
-             lyrics={processedLyrics || []}
-             currentTime={storePosition}
-             onLyricPress={handleLyricTap}
-             songTitle={currentSong?.title}
-             highlightColor={gradientColors[0] !== '#000' ? gradientColors[0] : 'rgba(255,255,255,0.2)'}
+           <SynchronizedLyrics 
+              ref={flatListRef}
+              lyrics={processedLyrics || []}
+              currentTime={storePosition}
+              onLyricPress={handleLyricTap}
+              songTitle={currentSong?.title}
+              highlightColor={gradientColors[0] !== '#000' ? gradientColors[0] : 'rgba(255,255,255,0.2)'}
              isUserScrolling={isUserScrolling.current}
              onScrollStateChange={(isScrolling) => {
                  isUserScrolling.current = isScrolling;
@@ -845,14 +833,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   mainCoverContainer: {
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
+    // Shadows removed for cleaner look
   },
   mainCover: {
     width: 250,
@@ -963,19 +944,15 @@ const styles = StyleSheet.create({
     zIndex: 15,
   },
   bottomControlsPill: {
-    marginHorizontal: 0, 
-    marginBottom: 0,     
-    borderTopLeftRadius: 25, // Slightly sharper
+    marginHorizontal: 0,
+    marginBottom: 0,
+    borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0, 
+    // Shadows removed for cleaner look
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
   },
   bottomControlsContent: {
     paddingHorizontal: 20,

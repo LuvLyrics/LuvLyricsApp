@@ -13,6 +13,14 @@ The app focuses on a premium lyrics-reading experience: synced lyrics, plain lyr
 
 This project is open for contributors.
 
+Recent improvements:
+
+- Player end-of-song detection is more reliable with a near-end fallback that triggers the next track even when `didJustFinish` misses
+- Download progress UI is smoother with throttled callbacks and concurrent downloads increased to 2
+- Lyrics scrolling is now buttery-smooth with `@shopify/flash-list` view recycling, debounced layout measurements, and binary-search active-line detection
+- Lyrics now have a professional `MaskedView` + `LinearGradient` edge fade — text softly blurs at the top and bottom edges like Apple Music
+- Desktop bridge is temporarily disabled (code preserved for future re-enablement)
+
 Good places to start:
 
 - Check open issues: https://github.com/peterish8/LuvLyrics/issues
@@ -29,12 +37,16 @@ Good places to start:
 - TypeScript
 - SQLite via `expo-sqlite`
 - Zustand for state
+- `react-native-tcp-socket` and `react-native-zeroconf` for desktop bridge networking
+- `expo-av` for audio playback
+- `expo-file-system` for local file and download management
+- `@shopify/flash-list` for high-performance list virtualization (library and lyrics)
 - Jest + ts-jest for unit tests
 - GitHub Actions for PR checks
 
 ## Features
 
-- Synced lyrics display with smooth active-line scrolling
+- Synced lyrics display with smooth active-line scrolling powered by `@shopify/flash-list`
 - Plain lyrics auto-scroll for lyrics without timestamps
 - Local SQLite song and playlist storage
 - Playlist management and per-playlist loop behavior
@@ -42,6 +54,7 @@ Good places to start:
 - Lyrics provider integrations through LRCLIB, Genius, Lyrica, JioSaavn-style APIs
 - Cover art search and local media tooling
 - Download queue and audio downloader flows
+- **Desktop bridge** — *temporarily disabled*; remote control the app from a desktop/web client over WiFi, with automatic phone-to-desktop playback handoff, heartbeat health monitoring, and per-song cover art serving
 - Open-source issue templates, PR template, CI checks, and contributor docs
 
 ## Repository Structure
