@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Add New Lyrics - YT Music Style</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FFFFFF", 
+                        "yt-bg": "#0F0F0F",
+                        "yt-surface": "#212121",
+                        "yt-accent": "#3EA6FF",
+                        "yt-text-secondary": "#AAAAAA",
+                        "yt-border": "#3F3F3F",
+                    },
+                    fontFamily: {
+                        "display": ["Roboto", "Spline Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: max(600px, 100dvh);
+            background-color: #0F0F0F;
+        }.floating-input:focus ~ label,
+        .floating-input:not(:placeholder-shown) ~ label {
+            transform: translateY(-12px) scale(0.75);
+            color: #3EA6FF;
+        }
+        .floating-input:not(:focus):not(:placeholder-shown) ~ label {
+             color: #AAAAAA;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-yt-bg font-display h-screen w-full flex flex-col overflow-hidden text-white antialiased">
+<header class="flex items-center justify-between px-4 py-4 shrink-0 bg-yt-bg sticky top-0 z-20">
+<button class="bg-[#272727] text-white text-[14px] font-medium px-5 py-2 rounded-full active:bg-[#3F3F3F] transition-colors border border-transparent hover:border-[#3F3F3F]">
+            Cancel
+        </button>
+<h1 class="text-[18px] font-bold text-center flex-1 text-white tracking-wide">Add lyrics</h1>
+<button class="bg-white text-black text-[14px] font-medium px-5 py-2 rounded-full active:bg-gray-200 transition-colors">
+            Save
+        </button>
+</header>
+<main class="flex-1 overflow-y-auto custom-scrollbar flex flex-col px-6 py-2 gap-8 w-full max-w-lg mx-auto">
+<div class="space-y-6 pt-4">
+<div class="relative group">
+<input class="floating-input block w-full pt-6 pb-2 px-0 bg-transparent border-b border-yt-border focus:border-yt-accent text-[16px] text-white placeholder-transparent focus:ring-0 focus:outline-none transition-colors" id="song-title" placeholder="Song Title" type="text"/>
+<label class="absolute left-0 top-4 text-yt-text-secondary text-[16px] transition-all origin-top-left pointer-events-none" for="song-title">
+                    Song Title
+                </label>
+</div>
+<div class="relative group">
+<input class="floating-input block w-full pt-6 pb-2 px-0 bg-transparent border-b border-yt-border focus:border-yt-accent text-[16px] text-white placeholder-transparent focus:ring-0 focus:outline-none transition-colors" id="artist-name" placeholder="Artist" type="text"/>
+<label class="absolute left-0 top-4 text-yt-text-secondary text-[16px] transition-all origin-top-left pointer-events-none" for="artist-name">
+                    Artist
+                </label>
+</div>
+</div>
+<div class="space-y-3">
+<h3 class="text-sm font-medium text-yt-text-secondary uppercase tracking-wider">Visual Theme</h3>
+<div class="flex gap-4 overflow-x-auto hide-scrollbar pb-2 -mx-2 px-2 snap-x">
+<button class="relative group flex flex-col items-center gap-3 snap-start shrink-0">
+<div class="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#121212] to-[#2a2a2a] ring-2 ring-white transition-all shadow-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white/50 text-3xl">dark_mode</span>
+</div>
+<span class="text-[13px] font-medium text-white">Dark</span>
+</button>
+<button class="relative group flex flex-col items-center gap-3 snap-start shrink-0">
+<div class="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#303030] to-[#505050] opacity-70 group-hover:opacity-100 transition-all hover:scale-105 shadow-lg flex items-center justify-center">
+<div class="w-full h-full rounded-2xl bg-black/10"></div>
+</div>
+<span class="text-[13px] font-medium text-yt-text-secondary group-hover:text-white">Steel</span>
+</button>
+<button class="relative group flex flex-col items-center gap-3 snap-start shrink-0">
+<div class="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#2C3E50] to-[#4CA1AF] opacity-70 group-hover:opacity-100 transition-all hover:scale-105 shadow-lg"></div>
+<span class="text-[13px] font-medium text-yt-text-secondary group-hover:text-white">Ocean</span>
+</button>
+<button class="relative group flex flex-col items-center gap-3 snap-start shrink-0">
+<div class="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#8E2DE2] to-[#4A00E0] opacity-70 group-hover:opacity-100 transition-all hover:scale-105 shadow-lg"></div>
+<span class="text-[13px] font-medium text-yt-text-secondary group-hover:text-white">Neon</span>
+</button>
+<button class="relative group flex flex-col items-center gap-3 snap-start shrink-0">
+<div class="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#FF416C] to-[#FF4B2B] opacity-70 group-hover:opacity-100 transition-all hover:scale-105 shadow-lg"></div>
+<span class="text-[13px] font-medium text-yt-text-secondary group-hover:text-white">Heat</span>
+</button>
+</div>
+</div>
+<div class="flex-1 flex flex-col space-y-2 pb-20">
+<div class="flex items-center justify-between">
+<label class="text-sm font-medium text-yt-text-secondary uppercase tracking-wider" for="lyrics-content">Lyrics</label>
+<button class="text-yt-accent text-sm font-medium hover:text-white transition-colors uppercase tracking-wide">
+                    Paste from clipboard
+                </button>
+</div>
+<textarea class="flex-1 w-full bg-[#181818] border border-transparent focus:border-yt-border rounded-xl p-5 text-[16px] leading-relaxed text-white placeholder:text-gray-600 focus:ring-0 focus:outline-none resize-none transition-all min-h-[300px]" id="lyrics-content" placeholder="Type or paste lyrics here..."></textarea>
+</div>
+</main>
+<div class="bg-[#181818] border-t border-[#2a2a2a] px-6 py-4 flex items-center justify-between shrink-0 fixed bottom-0 left-0 right-0 z-20 pb-safe">
+<div class="flex gap-8">
+<button class="text-yt-text-secondary hover:text-white transition-colors p-1">
+<span class="material-symbols-outlined text-[24px]">format_bold</span>
+</button>
+<button class="text-yt-text-secondary hover:text-white transition-colors p-1">
+<span class="material-symbols-outlined text-[24px]">format_italic</span>
+</button>
+<button class="text-yt-text-secondary hover:text-white transition-colors p-1">
+<span class="material-symbols-outlined text-[24px]">format_align_center</span>
+</button>
+</div>
+<button class="text-yt-text-secondary hover:text-white transition-colors p-1">
+<span class="material-symbols-outlined text-[24px]">keyboard_hide</span>
+</button>
+</div>
+
+</body></html>

@@ -1,0 +1,51 @@
+name: Feature Request
+description: Propose a new feature or enhancement
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share the problem first, then the proposed solution.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user pain does this solve?
+      placeholder: Contributors cannot persist queue state after app restart
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe expected behavior and technical direction
+      placeholder: Store pending queue entries in SQLite and recover on startup
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - Queue survives app restart
+        - Duplicate jobs are deduplicated by songId
+        - Failed jobs expose retry action
+    validations:
+      required: true
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: Suggested difficulty
+      options:
+        - good first issue
+        - medium
+        - hard
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Related files/links
+      placeholder: src/store/lyricsScanQueueStore.ts, README_DETAILED.md roadmap

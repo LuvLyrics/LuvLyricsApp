@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Refined Lyrics App Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "background-dark": "#000000",
+                        "card-dark": "#1C1C1E",
+                        "text-primary": "#FFFFFF",
+                        "text-secondary": "#AAAAAA",
+                        "divider": "#2C2C2E",
+                    },
+                    fontFamily: {
+                        "sans": ["Roboto", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .aurora-header {
+            background: 
+                radial-gradient(circle at 50% -20%, rgba(168, 85, 247, 0.4) 0%, rgba(0,0,0,0) 50%),
+                radial-gradient(circle at 10% 20%, rgba(236, 72, 153, 0.2) 0%, rgba(0,0,0,0) 40%),
+                radial-gradient(circle at 90% 20%, rgba(59, 130, 246, 0.2) 0%, rgba(0,0,0,0) 40%);
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 350px;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(40px);
+        }.ios-switch {
+            width: 51px;
+            height: 31px;
+            border-radius: 999px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .ios-switch input {
+            display: none;
+        }
+        .ios-switch-bg {
+            width: 100%;
+            height: 100%;
+            background-color: #39393D;
+            border-radius: 999px;
+            transition: background-color 0.3s;
+        }
+        .ios-switch-knob {
+            width: 27px;
+            height: 27px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s cubic-bezier(0.3, 1.5, 0.7, 1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .ios-switch.active .ios-switch-bg {
+            background-color: #34C759;
+        }
+        .ios-switch.active .ios-switch-knob {
+            transform: translateX(20px);
+        }
+        .settings-row {
+            height: 60px;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark text-text-primary font-sans antialiased min-h-screen flex flex-col relative overflow-x-hidden selection:bg-purple-500/30">
+<div class="aurora-header"></div>
+<main class="flex-1 relative z-10 px-4 pt-12 pb-10">
+<div class="flex flex-col items-center mb-10">
+<div class="w-20 h-20 rounded-full overflow-hidden mb-4 ring-2 ring-white/10 shadow-2xl">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRPaYV2Gzajrzx7QVZGWa9GyGV1OWk2hvMnEM8TlRXDnhHqyQZ4J0NoACybMDCp1QEPzhwiaWccMXkkBeYBVFA8cpeV_tYdxoxHXd9CiMkw0q_1dMQisn1UfK81NWyZmlZUbmVzukUDILPFztERBniRcH5w_zUOKbePJ-xcQSETRAyEvZDDC0lNYWv7IfRd_5yF3QUfB6ZOldnF3SaKOyjZFTCN0r2pypX9g0Gi5MzmJYP1VpEp9ZS0im7gqAHIPDYKDJVGteF0CU"/>
+</div>
+<h1 class="text-2xl font-bold mb-1">Alex</h1>
+<p class="text-text-secondary text-sm">alex.design@example.com</p>
+</div>
+<div class="grid grid-cols-3 gap-3 mb-10">
+<button class="bg-card-dark rounded-2xl p-4 flex flex-col items-center justify-center gap-3 h-28 active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined text-3xl text-purple-400">download_for_offline</span>
+<span class="text-xs font-medium text-gray-300">Downloads</span>
+</button>
+<button class="bg-card-dark rounded-2xl p-4 flex flex-col items-center justify-center gap-3 h-28 active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined text-3xl text-pink-400">equalizer</span>
+<span class="text-xs font-medium text-gray-300">Quality</span>
+</button>
+<button class="bg-card-dark rounded-2xl p-4 flex flex-col items-center justify-center gap-3 h-28 active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined text-3xl text-blue-400">history</span>
+<span class="text-xs font-medium text-gray-300">History</span>
+</button>
+</div>
+<div class="space-y-8">
+<section>
+<h3 class="text-xs font-bold text-text-secondary mb-2 uppercase tracking-wider pl-1">Appearance</h3>
+<div class="flex flex-col">
+<div class="settings-row border-b border-divider/50 cursor-pointer active:bg-white/5 -mx-4 px-4 transition-colors">
+<span class="material-symbols-outlined text-gray-400 text-2xl mr-4">dark_mode</span>
+<span class="text-base font-medium flex-1">App Theme</span>
+<span class="text-text-secondary text-base flex items-center gap-1">
+                            Dark
+                            <span class="material-symbols-outlined text-xl text-gray-600">chevron_right</span>
+</span>
+</div>
+<div class="settings-row border-b border-divider/50 cursor-pointer active:bg-white/5 -mx-4 px-4 transition-colors">
+<span class="material-symbols-outlined text-gray-400 text-2xl mr-4">text_fields</span>
+<span class="text-base font-medium flex-1">Lyrics Size</span>
+<span class="text-text-secondary text-base flex items-center gap-1">
+                            Medium
+                            <span class="material-symbols-outlined text-xl text-gray-600">chevron_right</span>
+</span>
+</div>
+</div>
+</section>
+<section>
+<h3 class="text-xs font-bold text-text-secondary mb-2 uppercase tracking-wider pl-1">Playback</h3>
+<div class="flex flex-col">
+<div class="settings-row border-b border-divider/50 cursor-pointer active:bg-white/5 -mx-4 px-4 transition-colors">
+<span class="material-symbols-outlined text-gray-400 text-2xl mr-4">graphic_eq</span>
+<span class="text-base font-medium flex-1">Audio Quality</span>
+<span class="text-text-secondary text-base flex items-center gap-1">
+                            High
+                            <span class="material-symbols-outlined text-xl text-gray-600">chevron_right</span>
+</span>
+</div>
+<div class="settings-row border-b border-divider/50 cursor-pointer -mx-4 px-4">
+<span class="material-symbols-outlined text-gray-400 text-2xl mr-4">lyrics</span>
+<span class="text-base font-medium flex-1">Auto-Scroll Lyrics</span>
+<div class="ios-switch active" onclick="this.classList.toggle('active')">
+<div class="ios-switch-bg"></div>
+<div class="ios-switch-knob"></div>
+</div>
+</div>
+<div class="settings-row border-b border-divider/50 cursor-pointer -mx-4 px-4">
+<span class="material-symbols-outlined text-gray-400 text-2xl mr-4">smart_display</span>
+<span class="text-base font-medium flex-1">Show Music Videos</span>
+<div class="ios-switch" onclick="this.classList.toggle('active')">
+<div class="ios-switch-bg"></div>
+<div class="ios-switch-knob"></div>
+</div>
+</div>
+</div>
+</section>
+<section>
+<h3 class="text-xs font-bold text-text-secondary mb-2 uppercase tracking-wider pl-1">Library</h3>
+<div class="flex flex-col">
+<div class="settings-row border-b border-divider/50 cursor-pointer active:bg-white/5 -mx-4 px-4 transition-colors">
+<span class="material-symbols-outlined text-gray-400 text-2xl mr-4">folder</span>
+<span class="text-base font-medium flex-1">Local Files</span>
+<span class="text-text-secondary text-base flex items-center gap-1">
+                            Import
+                            <span class="material-symbols-outlined text-xl text-gray-600">chevron_right</span>
+</span>
+</div>
+<div class="settings-row border-b border-divider/50 cursor-pointer -mx-4 px-4">
+<span class="material-symbols-outlined text-gray-400 text-2xl mr-4">download</span>
+<span class="text-base font-medium flex-1">Smart Downloads</span>
+<div class="ios-switch active" onclick="this.classList.toggle('active')">
+<div class="ios-switch-bg"></div>
+<div class="ios-switch-knob"></div>
+</div>
+</div>
+</div>
+</section>
+<section>
+<h3 class="text-xs font-bold text-text-secondary mb-2 uppercase tracking-wider pl-1">About</h3>
+<div class="flex flex-col">
+<div class="settings-row border-b border-divider/50 cursor-pointer active:bg-white/5 -mx-4 px-4 transition-colors">
+<span class="material-symbols-outlined text-gray-400 text-2xl mr-4">info</span>
+<span class="text-base font-medium flex-1">Version</span>
+<span class="text-text-secondary text-base">2.4.0 (8942)</span>
+</div>
+<div class="settings-row border-b border-divider/50 cursor-pointer active:bg-white/5 -mx-4 px-4 transition-colors">
+<span class="material-symbols-outlined text-gray-400 text-2xl mr-4">policy</span>
+<span class="text-base font-medium flex-1">Privacy Policy</span>
+<span class="material-symbols-outlined text-xl text-gray-600">chevron_right</span>
+</div>
+</div>
+</section>
+</div>
+<div class="mt-12 flex justify-center">
+<button class="text-red-500 font-semibold text-lg py-4 w-full active:opacity-70 transition-opacity">
+                Log Out
+            </button>
+</div>
+</main>
+
+</body></html>

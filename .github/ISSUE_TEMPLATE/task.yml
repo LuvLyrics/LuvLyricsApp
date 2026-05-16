@@ -1,0 +1,60 @@
+name: Contributor Task
+description: Create a scoped implementation task for contributors
+title: "[Task]: "
+labels:
+  - help wanted
+body:
+  - type: input
+    id: goal
+    attributes:
+      label: Goal
+      placeholder: Add unit tests for timestamp parser edge cases
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this task matters now
+      placeholder: Parser behavior is core to synced/plain detection but lacks tests
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope (in/out)
+      placeholder: |
+        In scope:
+        - Add tests for [0:00], (0:00), 0.00, malformed lines
+        Out of scope:
+        - Refactoring parser implementation
+    validations:
+      required: true
+  - type: textarea
+    id: deliverables
+    attributes:
+      label: Deliverables
+      placeholder: |
+        - Code changes
+        - Tests
+        - README update (if behavior changes)
+    validations:
+      required: true
+  - type: dropdown
+    id: level
+    attributes:
+      label: Task level
+      options:
+        - good first issue
+        - intermediate
+        - hard
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Maintainer checklist
+      options:
+        - label: Reproducible / clear acceptance criteria added
+        - label: Files/modules impacted listed
+        - label: Tests expected are specified

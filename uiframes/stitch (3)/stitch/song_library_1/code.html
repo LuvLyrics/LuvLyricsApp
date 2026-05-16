@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>YT Music Home with Aurora Effect</title>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#7f13ec",
+                        "background-light": "#f7f6f8",
+                        "background-dark": "#000000",
+                        "surface-dark": "#121212",
+                        "text-secondary": "#A1A1AA",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-black font-display antialiased min-h-screen flex flex-col overflow-hidden text-white relative">
+<div class="fixed top-0 left-0 w-full h-80 z-0 pointer-events-none opacity-60 mix-blend-screen">
+<div class="absolute top-[-100px] left-[-20%] w-[80%] h-[400px] bg-teal-500/20 rounded-full blur-[100px]"></div>
+<div class="absolute top-[-120px] right-[-10%] w-[70%] h-[400px] bg-purple-600/25 rounded-full blur-[100px]"></div>
+<div class="absolute top-[-150px] left-[20%] w-[60%] h-[350px] bg-blue-600/20 rounded-full blur-[90px]"></div>
+</div>
+<div class="fixed top-0 left-0 w-full h-40 bg-gradient-to-b from-black/20 to-transparent z-0 pointer-events-none"></div>
+<div class="h-12 w-full shrink-0 z-20"></div> 
+<div class="flex-1 overflow-y-auto overflow-x-hidden pb-24 z-10">
+<header class="sticky top-0 z-30 px-4 pt-2 pb-2 flex items-center justify-between">
+<div class="flex items-center gap-2">
+</div>
+<div class="flex items-center gap-5">
+<button class="text-white hover:text-gray-300 transition-colors">
+<span class="material-symbols-outlined text-[26px]">notifications</span>
+</button>
+<button class="text-white hover:text-gray-300 transition-colors">
+<span class="material-symbols-outlined text-[26px]">search</span>
+</button>
+<button class="relative overflow-hidden rounded-full h-7 w-7 flex items-center justify-center bg-gray-800 transition-transform active:scale-95 border border-white/10">
+<img alt="User Profile Avatar" class="h-full w-full object-cover" data-alt="User profile picture placeholder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKGfBcKU5rZh5R-uaeAw8UNj44xzC-4t6IKQhdu3hMi7YDDuJPk7HpzTKLH_s85ny95cQ6Uz8IlbdOF77sL2teEGYjdPhVjQw9jMd6Vql0jZm9KPJHzprMS8GKsOm6PH5a5ASc8IE9WRygzmpTN7tFS_-pZKjrnPAU62b0Xxh_Iv_pJWNplC3HexCuVjpplaipmY6vh2UKwztexRgWHFbkTxXYW0vT1ADLXL46BNckyNPUQgMZnzDlVY1Cg9IuRI53B9TXKVIrO1A"/>
+</button>
+</div>
+</header>
+<section class="mt-2 mb-6">
+<div class="flex overflow-x-auto no-scrollbar gap-2 px-4 pb-2">
+<button class="flex-shrink-0 px-4 py-1.5 rounded-lg bg-white/10 border border-white/5 backdrop-blur-sm text-sm font-medium text-white whitespace-nowrap active:bg-white/20 transition-colors">
+                    Energize
+                </button>
+<button class="flex-shrink-0 px-4 py-1.5 rounded-lg bg-white/10 border border-white/5 backdrop-blur-sm text-sm font-medium text-white whitespace-nowrap active:bg-white/20 transition-colors">
+                    Relax
+                </button>
+<button class="flex-shrink-0 px-4 py-1.5 rounded-lg bg-white/10 border border-white/5 backdrop-blur-sm text-sm font-medium text-white whitespace-nowrap active:bg-white/20 transition-colors">
+                    Romance
+                </button>
+<button class="flex-shrink-0 px-4 py-1.5 rounded-lg bg-white/10 border border-white/5 backdrop-blur-sm text-sm font-medium text-white whitespace-nowrap active:bg-white/20 transition-colors">
+                    Workout
+                </button>
+<button class="flex-shrink-0 px-4 py-1.5 rounded-lg bg-white/10 border border-white/5 backdrop-blur-sm text-sm font-medium text-white whitespace-nowrap active:bg-white/20 transition-colors">
+                    Focus
+                </button>
+</div>
+</section>
+<section class="px-4 mb-10">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-2xl font-bold text-white tracking-tight">Listen again</h2>
+<button class="text-xs font-medium text-white/60 border border-white/20 rounded-full px-2 py-1 hover:bg-white/10">More</button>
+</div>
+<div class="grid grid-cols-2 gap-x-4 gap-y-6">
+<div class="group cursor-pointer flex flex-col gap-2">
+<div class="relative aspect-square rounded-md overflow-hidden bg-gray-900 shadow-lg">
+<img alt="Blinding Lights album art" class="w-full h-full object-cover group-active:scale-95 transition-transform duration-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEO8OEDLT7GmWjOJNyUgI18mn3QwU55YjzBgzMYM02bQP9tSqhSdK6CCaVevq7gEUB9AgzNXF1LwJfRRG7deyz70biq9eZja7gIFYTtsbkjrQDHszk8NjWPERaTG1YUXd17dzqgVYUp-8ME4F0ZviwYRueWpklONOaqrEncgnHmOBeq530oSiS0PtQ1sjEDoeQUxjwgw-D6iogW_msQYelT76gQdhFxMUmptvg8UrZbG4b5kMH_znh_F7fBTqnUXxQToEr2tpKu5E"/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors"></div>
+</div>
+<div>
+<p class="text-sm font-bold text-white leading-tight truncate">Blinding Lights</p>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[12px] text-text-secondary fill-1">explicit</span>
+<p class="text-xs text-text-secondary truncate">The Weeknd • After Hours</p>
+</div>
+</div>
+</div>
+<div class="group cursor-pointer flex flex-col gap-2">
+<div class="relative aspect-square rounded-md overflow-hidden bg-gray-900 shadow-lg">
+<img alt="Levitating album art" class="w-full h-full object-cover group-active:scale-95 transition-transform duration-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqJNRAAZzdmamXSCaNKuJpi2dAz-f7NypRBdhat-k1H1cPK9OcjOmCdL1hvyZKfJJQxTE0WqhBBP79QurA083WO7OSfSyA9BFWE-MzC0_tJw3ss06rpPXgdT6Elavq400Lm8KBhKaHRUDZnkGPGkxZo0urUGanaGxvsNTxcLwLjKz5VvHEnlBtgjfdnEkuQOdPvyG1V2QCpLQG4X_RNiLFcR5QU11qZjvPgOtQNgSOUzqub4xSK-tU6CMLa-KWxfIT7TXAsBP6TG4"/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors"></div>
+</div>
+<div>
+<p class="text-sm font-bold text-white leading-tight truncate">Levitating</p>
+<p class="text-xs text-text-secondary truncate mt-0.5">Dua Lipa • Future Nostalgia</p>
+</div>
+</div>
+<div class="group cursor-pointer flex flex-col gap-2">
+<div class="relative aspect-square rounded-md overflow-hidden bg-gray-900 shadow-lg">
+<img alt="Save Your Tears art" class="w-full h-full object-cover group-active:scale-95 transition-transform duration-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhT0pA5LLI6pxzuCEzSQuK7W58RQ2blV1vGFijGKw2lhxZtuCo_KWH0cBBeVrZwQu6rjwh25DENAbqIbCTWWYQEjvWteQrEO-VTxGkSo2VHWr4YosEq3CO4EcJJWpV-8nfzg6gphX_cUarqKhGxXchqqJA6hckW8XZQEvEOUdbn-b65cD14KjJkAuhMKi6ku72VobtRj7IrGuuQDW8baY6_BEwuVQUDwJDQ0pb3ty_TMCa3PKPr7WnHkbg1Ir_zdbJXn6g9E7RNak"/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors"></div>
+</div>
+<div>
+<p class="text-sm font-bold text-white leading-tight truncate">Save Your Tears</p>
+<p class="text-xs text-text-secondary truncate mt-0.5">The Weeknd • After Hours</p>
+</div>
+</div>
+<div class="group cursor-pointer flex flex-col gap-2">
+<div class="relative aspect-square rounded-md overflow-hidden bg-gray-900 shadow-lg">
+<img alt="Space Oddity art" class="w-full h-full object-cover group-active:scale-95 transition-transform duration-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCj--v78MC0uMgV2Zn5YrjQ5u7D-G5_auSrX7HAEAe_ssa2UugZqfd2rLrQGqoquOg9jppBAzX-ktYst2O6nbW4yv06tFPKAX_bEYYLkPErMAS5NuSzZocPLl_ytr_AwiRCct_WzxZeN9EWwhmj_DUmcHi-nOZWr_J6f8AxELC8iIB00ypTvZiTuuyfGOVUmys3rJjMncOlHGMSIWAGnkdVIvMTrZc6usSXAwWVzAh5kOA83RGhqevm2bph2kpbXZhLk5eeFDmR5OY"/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors"></div>
+</div>
+<div>
+<p class="text-sm font-bold text-white leading-tight truncate">Space Oddity</p>
+<p class="text-xs text-text-secondary truncate mt-0.5">David Bowie</p>
+</div>
+</div>
+</div>
+</section>
+<section class="mb-8">
+<div class="px-4 mb-4">
+<p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Start Radio</p>
+<h2 class="text-2xl font-bold text-white">Quick Picks</h2>
+</div>
+<div class="flex overflow-x-auto no-scrollbar gap-4 px-4 pb-4">
+<div class="flex-shrink-0 w-64 group cursor-pointer">
+<div class="flex flex-col gap-3">
+<div class="flex items-center gap-3">
+<img alt="Song thumb" class="w-12 h-12 rounded bg-gray-800 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCp4QUNJEwyR6hCLSe8EVaWeLANZHzl-8MSLqIB28leIUssOltkYFThtEWV8187yMKlmxriChFQWnZRcgLpPkPZlicchzTnuQewyqTvAaTNMgOdPJTutWvAP570Pdv_rgBXSpd_z4bzhSzNJdo-WLqiOpD9bssfxlTOg_cUkOfKuhK34kogZHG--m503NR5x94Qp6KymDrqNZh_kH72KQ9fP_9ZSVFlN46QOMxAgqV8v79VYZ08z8FzioyjFkeccJA9-TWM5E1oZ20"/>
+<div class="flex flex-col justify-center overflow-hidden">
+<h4 class="text-sm font-medium text-white truncate">Physical</h4>
+<p class="text-xs text-gray-400 truncate">Dua Lipa</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<img alt="Song thumb" class="w-12 h-12 rounded bg-gray-800 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtQWHGeCpKFG9rtOVHMMEVduHlp8q1vwUmZ_8X8zC3ahEMho1ADclFGPAv0_Sx6ZUSCDjOz1wTYRLvaTw30A07jdOc394LqtPx_pV_UFRRmnG6PWXbFGadycj4kgEO9DNR99p8XeBsda9h3lSTWJ4xiYI434uAkdRQqroH9I9PVKTjY8tvx0zTO4LBDLynD8SdV2KOghzWwxJbzWqq3Vuj552mxdklKzkrGX7MssXvnKuItwAnY4ZLxwNLfXYr5DIvClN-JU-hkrw"/>
+<div class="flex flex-col justify-center overflow-hidden">
+<h4 class="text-sm font-medium text-white truncate">Instant Crush</h4>
+<p class="text-xs text-gray-400 truncate">Daft Punk</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<img alt="Song thumb" class="w-12 h-12 rounded bg-gray-800 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDePfvxnSi5O6tLmDMMXfBFqUIF_JWXh8ZVukKE_7-vzZWUTF4PdgKjSeFKoy0EiVXNEDKTTyGXn4mF4eGmmMZrnHAr_qctK-Ta_o8lNcZvIi1hTetcEpN5Yw3axlrIUUPqtvzzZ1JdqaSUgMja3SBWPtmFxRbzI6Yoo_CAEliclhhXKS7AhGebgGSkQlpYxQHtspIGTlftMPKiOwY9tlllJUP1kl0nZaRLfIQgSPiPjN7VLD8mFH-U5n2iIirPcH4Zl8N4cy9p_F8"/>
+<div class="flex flex-col justify-center overflow-hidden">
+<h4 class="text-sm font-medium text-white truncate">Bohemian Rhapsody</h4>
+<p class="text-xs text-gray-400 truncate">Queen</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex-shrink-0 w-64 group cursor-pointer">
+<div class="flex flex-col gap-3">
+<div class="flex items-center gap-3">
+<img alt="Song thumb" class="w-12 h-12 rounded bg-gray-800 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpMQjnzdcqmK9jkH-U9jm2zy9uA--SRFSNAhbK6HxnpC1EBysydPSRXH-JSwF1aTKMaI_oQEl8UP3L9Q68PLFViNLxlbwCshLU-GmEDZW6KmJHDrPlVHdg_NlEruVfnh18vajgI2sWlAIqrz13c0Ql51iyBe0J0mZwelrc3l87h7SoS0KMjovmSLhoAzZsVuI6b1rmSDzm90LPtx94oaKgKYXPCM9rOKdedPQQkWFtn1aMzq6nGjFl6UOk2GH0dkQx5C-V9kwgNzA"/>
+<div class="flex flex-col justify-center overflow-hidden">
+<h4 class="text-sm font-medium text-white truncate">Come Together</h4>
+<p class="text-xs text-gray-400 truncate">The Beatles</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<img alt="Song thumb" class="w-12 h-12 rounded bg-gray-800 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgSQVdSw4gsW_q80TsYKyeocR8uRHPtNKCrnDDc0qGXZeH1KM0OV_NtUE7il3hHRz4Z-H05gDzNTa8CDqNafTJV0xR1SHMRc6fZC1_1eUU89aL2q7JPM7baQ0hg42Jxk85Cngk_Db-n0LSiLd-sgnNCT45PS0lS5ouWlQcNoW-OxaFxsTor2XJ1SNZksX5fvqctfCUrlp6aisUtXPAWCmnDFECAPvnUWGXCoJ977dKYK56bFxRJb1GF5dKhpjS6ba95LJNQJ3n8iU"/>
+<div class="flex flex-col justify-center overflow-hidden">
+<h4 class="text-sm font-medium text-white truncate">Midnight City</h4>
+<p class="text-xs text-gray-400 truncate">M83</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<img alt="Song thumb" class="w-12 h-12 rounded bg-gray-800 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhT0pA5LLI6pxzuCEzSQuK7W58RQ2blV1vGFijGKw2lhxZtuCo_KWH0cBBeVrZwQu6rjwh25DENAbqIbCTWWYQEjvWteQrEO-VTxGkSo2VHWr4YosEq3CO4EcJJWpV-8nfzg6gphX_cUarqKhGxXchqqJA6hckW8XZQEvEOUdbn-b65cD14KjJkAuhMKi6ku72VobtRj7IrGuuQDW8baY6_BEwuVQUDwJDQ0pb3ty_TMCa3PKPr7WnHkbg1Ir_zdbJXn6g9E7RNak"/>
+<div class="flex flex-col justify-center overflow-hidden">
+<h4 class="text-sm font-medium text-white truncate">Starboy</h4>
+<p class="text-xs text-gray-400 truncate">The Weeknd</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="px-4 mb-8">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-2xl font-bold text-white tracking-tight">Recommended music videos</h2>
+</div>
+<div class="flex overflow-x-auto no-scrollbar gap-4 pb-4">
+<div class="flex-shrink-0 w-64 group cursor-pointer">
+<div class="relative aspect-video rounded-lg overflow-hidden bg-gray-900 mb-2">
+<img alt="Music video thumbnail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCj--v78MC0uMgV2Zn5YrjQ5u7D-G5_auSrX7HAEAe_ssa2UugZqfd2rLrQGqoquOg9jppBAzX-ktYst2O6nbW4yv06tFPKAX_bEYYLkPErMAS5NuSzZocPLl_ytr_AwiRCct_WzxZeN9EWwhmj_DUmcHi-nOZWr_J6f8AxELC8iIB00ypTvZiTuuyfGOVUmys3rJjMncOlHGMSIWAGnkdVIvMTrZc6usSXAwWVzAh5kOA83RGhqevm2bph2kpbXZhLk5eeFDmR5OY"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="bg-black/50 rounded-full p-2 backdrop-blur-sm">
+<span class="material-symbols-outlined text-white text-[24px]">play_arrow</span>
+</div>
+</div>
+</div>
+<h3 class="text-sm font-medium text-white truncate">Live at Wembley</h3>
+<p class="text-xs text-gray-400">Queen • 24M views</p>
+</div>
+<div class="flex-shrink-0 w-64 group cursor-pointer">
+<div class="relative aspect-video rounded-lg overflow-hidden bg-gray-900 mb-2">
+<img alt="Music video thumbnail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEO8OEDLT7GmWjOJNyUgI18mn3QwU55YjzBgzMYM02bQP9tSqhSdK6CCaVevq7gEUB9AgzNXF1LwJfRRG7deyz70biq9eZja7gIFYTtsbkjrQDHszk8NjWPERaTG1YUXd17dzqgVYUp-8ME4F0ZviwYRueWpklONOaqrEncgnHmOBeq530oSiS0PtQ1sjEDoeQUxjwgw-D6iogW_msQYelT76gQdhFxMUmptvg8UrZbG4b5kMH_znh_F7fBTqnUXxQToEr2tpKu5E"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="bg-black/50 rounded-full p-2 backdrop-blur-sm">
+<span class="material-symbols-outlined text-white text-[24px]">play_arrow</span>
+</div>
+</div>
+</div>
+<h3 class="text-sm font-medium text-white truncate">Blinding Lights (Official Video)</h3>
+<p class="text-xs text-gray-400">The Weeknd • 800M views</p>
+</div>
+</div>
+</section>
+</div>
+<nav class="fixed bottom-0 w-full z-40 bg-[#212121] border-t border-white/5 pb-6 pt-2">
+<div class="flex items-center justify-around px-2">
+<button class="flex flex-col items-center gap-1 w-16 group">
+<span class="material-symbols-outlined text-white text-[24px] fill-1">home</span>
+<span class="text-[10px] font-medium text-white">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-16 group">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-white transition-colors text-[24px]">play_circle</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-white transition-colors">Samples</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-16 group">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-white transition-colors text-[24px]">explore</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-white transition-colors">Explore</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-16 group">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-white transition-colors text-[24px]">library_music</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-white transition-colors">Library</span>
+</button>
+</div>
+</nav>
+
+</body></html>

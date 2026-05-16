@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Now Playing Lyrics</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff2d55", 
+                        "background-light": "#f7f6f8",
+                        "background-dark": "#1c1c1e",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "system-ui", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "3xl": "2.5rem", "full": "9999px"},
+                    boxShadow: {
+                        'soft': '0 8px 30px rgba(0,0,0,0.12)',
+                        'glow': '0 0 20px rgba(255, 255, 255, 0.25)'
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        @keyframes gradient-move {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-gradient {
+            background-size: 300% 300%;
+            animation: gradient-move 20s ease infinite;
+        }.glass-controls {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);mask-image: linear-gradient(to bottom, transparent 0%, black 20%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%);
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-black font-display antialiased overflow-hidden selection:bg-white/30 text-white">
+<div class="relative h-screen w-full flex flex-col overflow-hidden">
+<div class="absolute inset-0 -z-10 bg-gradient-to-br from-[#4A0E4E] via-[#81194E] to-[#2E2E66] animate-gradient opacity-60"></div>
+<div class="absolute inset-0 -z-10 bg-gradient-to-tr from-orange-900/40 via-transparent to-blue-900/40 animate-gradient mix-blend-overlay"></div>
+<div class="absolute inset-0 -z-5 opacity-[0.03] pointer-events-none" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC8SyCvRnEjeiLPeCtX-KI1y8acpoSlSOhIAqYnieqC6kfFj4DesMdOtgzg1nJAb0Gym4EErpFdYsXh37ARVO_9-n_EMzIoB0wPYC2nbt33K7DN_gM-itX_haTDZZdD45KNIY2FeGvxpjb5myJHPmSzCAH0ttugr5WwQdhi48Hi8V044kUIElEiSe9SfEP4Slm9_-I1aSBeQobyF1os0Lb6c1kFG2mrYUB0YFdqvonZOmz3He2lAnKYWmkaQu7mOOVlAd4u8l8_Dpk');"></div>
+<div class="absolute inset-0 -z-10 bg-black/30"></div>
+<header class="flex items-center justify-between px-6 pt-12 pb-2 z-20 shrink-0">
+<button class="flex items-center justify-center size-10 rounded-full active:bg-white/10 transition-colors text-white/60 hover:text-white">
+<span class="material-symbols-outlined !text-[28px] font-light">expand_more</span>
+</button>
+<button class="flex items-center justify-center size-10 rounded-full active:bg-white/10 transition-colors text-white/60 hover:text-white">
+<span class="material-symbols-outlined !text-[24px]">more_horiz</span>
+</button>
+</header>
+<main class="flex-1 relative flex flex-col w-full z-10 overflow-hidden">
+<div class="h-full w-full overflow-y-auto no-scrollbar flex flex-col px-8 pb-32 pt-10 text-center">
+<div class="flex-1 flex flex-col justify-center items-center space-y-10 min-h-full pb-40">
+<p class="text-[28px] md:text-[34px] font-bold text-white/50 leading-snug transition-all duration-500 hover:text-white/70 cursor-pointer scale-95 origin-center">
+                        Waiting in the car
+                    </p>
+<p class="text-[28px] md:text-[34px] font-bold text-white/50 leading-snug transition-all duration-500 hover:text-white/70 cursor-pointer scale-95 origin-center">
+                        Waiting for a ride in the dark
+                    </p>
+<p class="text-[28px] md:text-[34px] font-bold text-white/50 leading-snug transition-all duration-500 hover:text-white/70 cursor-pointer scale-95 origin-center">
+                        The night city grows
+                    </p>
+<div class="relative py-4 origin-center transition-all duration-500 scale-105">
+<h1 class="relative text-[36px] md:text-[42px] font-extrabold leading-tight text-white drop-shadow-xl tracking-tight">
+                            Look around there is no car
+                        </h1>
+</div>
+<p class="text-[28px] md:text-[34px] font-bold text-white/50 leading-snug transition-all duration-500 hover:text-white/70 cursor-pointer scale-95 origin-center blur-[0.5px]">
+                        See the lights, see the lights
+                    </p>
+<p class="text-[28px] md:text-[34px] font-bold text-white/50 leading-snug transition-all duration-500 hover:text-white/70 cursor-pointer scale-95 origin-center blur-[0.5px]">
+                        Passing by
+                    </p>
+<p class="text-[28px] md:text-[34px] font-bold text-white/50 leading-snug transition-all duration-500 hover:text-white/70 cursor-pointer scale-95 origin-center blur-[1px]">
+                        I've been waiting for this night
+                    </p>
+<p class="text-[28px] md:text-[34px] font-bold text-white/50 leading-snug transition-all duration-500 hover:text-white/70 cursor-pointer scale-95 origin-center blur-[1px]">
+                        To show you who I really am
+                    </p>
+<p class="text-[28px] md:text-[34px] font-bold text-white/50 leading-snug transition-all duration-500 hover:text-white/70 cursor-pointer scale-95 origin-center blur-[1.5px]">
+                        Behind the mask I wear
+                    </p>
+</div>
+</div>
+<div class="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-20"></div>
+</main>
+<div class="w-full z-30 px-6 pb-10 pt-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
+<div class="flex flex-col gap-7">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-5">
+<div class="size-[60px] rounded-lg bg-cover bg-center shrink-0 shadow-lg ring-1 ring-white/20" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDxmRgSrfNPsLhwfkehs-J84vM_eoHqUBKC98wk8BKRFt-DWrHBIYVQreWqlzFmlPYYW19gcQv5cjLE_6pSUT71EBiY3txP-Oj4e-RfK53mpk_hKoD2wskzk9HJtWE3Ek8F_dUj23Weq8GRzWQd-xXaqxQIUD9HiZJaD8W9RkvJ766Q1ZTJl_qRixZbMA3xlC8m7hWoiBkJ2Vq-4gG5HpmIBEvonNRanYhjjtR7lNe7tLR4i1Z3e1itM2mS_EDMOJgnpLR2ypA0fqo");'></div>
+<div class="flex flex-col justify-center text-shadow-sm">
+<h3 class="text-white font-extrabold text-[22px] leading-tight tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">Midnight City</h3>
+<div class="flex items-center text-white/90 text-[16px] font-semibold mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+<span>M83</span>
+<span class="mx-1.5 opacity-60 text-[10px]">•</span>
+<span class="text-white/70 font-medium truncate max-w-[140px]">Hurry Up, We're Dreaming</span>
+</div>
+</div>
+</div>
+<button class="size-10 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors backdrop-blur-md">
+<span class="material-symbols-outlined !text-[22px]">more_horiz</span>
+</button>
+</div>
+<div class="group/progress w-full cursor-pointer py-1">
+<div class="relative w-full h-1.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+<div class="absolute left-0 top-0 h-full w-[65%] bg-white rounded-full opacity-90 shadow-[0_0_10px_rgba(255,255,255,0.4)]"></div>
+</div>
+<div class="flex justify-between mt-2 text-[13px] font-medium text-white/60 font-mono tracking-wide">
+<span>2:14</span>
+<span>-1:31</span>
+</div>
+</div>
+<div class="flex items-center justify-center gap-12 pb-2">
+<button class="text-white/80 hover:text-white transition-colors active:scale-95 transform">
+<span class="material-symbols-outlined !text-[44px] fill">skip_previous</span>
+</button>
+<button class="flex items-center justify-center size-[76px] text-white hover:scale-105 active:scale-95 transition-transform drop-shadow-lg">
+<span class="material-symbols-outlined !text-[76px] fill">play_circle</span>
+</button>
+<button class="text-white/80 hover:text-white transition-colors active:scale-95 transform">
+<span class="material-symbols-outlined !text-[44px] fill">skip_next</span>
+</button>
+</div>
+<div class="flex items-center justify-between px-4 text-white/60">
+<button class="p-2 hover:text-white transition-colors">
+<span class="material-symbols-outlined !text-[24px]">format_quote</span>
+</button>
+<button class="p-2 hover:text-white transition-colors">
+<span class="material-symbols-outlined !text-[24px]">airplay</span>
+</button>
+<button class="p-2 hover:text-white transition-colors">
+<span class="material-symbols-outlined !text-[24px]">list</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+        window.addEventListener('load', () => {
+            const container = document.querySelector('.overflow-y-auto');
+            if(container) {
+                // Center the active lyric approximately
+                const activeLyric = document.querySelector('h1').parentElement;
+                if(activeLyric){
+                    activeLyric.scrollIntoView({block: "center", behavior: "smooth"});
+                }
+            }
+        });
+    script
+</script>
+</body></html>
