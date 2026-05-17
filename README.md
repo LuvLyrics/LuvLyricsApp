@@ -26,6 +26,7 @@ Good places to start:
 - Check open issues: https://github.com/peterish8/LuvLyrics/issues
 - Pick issues labeled `good first issue` or `help wanted`
 - Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a PR
+- Review the [database schema and migration flow](./docs/database-schema.md) before changing SQLite tables or queries
 - Follow [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
 - Report sensitive issues through [SECURITY.md](./SECURITY.md)
 
@@ -70,6 +71,8 @@ src/
   types/            Shared TypeScript types
 scripts/
   ci/               CI helper scripts
+docs/
+  database-schema.md SQLite schema and migration notes
 .github/
   workflows/        GitHub Actions workflows
   ISSUE_TEMPLATE/   Issue templates
