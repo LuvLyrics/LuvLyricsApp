@@ -186,8 +186,12 @@ You can also run checks individually:
 ```bash
 npm run lint
 npm run typecheck
+npm run smoke:alignment
 npm test
 ```
+
+See [docs/smoke-tests.md](./docs/smoke-tests.md) for smoke test output examples
+and troubleshooting notes.
 
 ## Pull Request Checks
 

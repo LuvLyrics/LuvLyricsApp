@@ -87,6 +87,15 @@ npm run typecheck
 npm run test:ci
 ```
 
+For a quick alignment smoke check, run:
+
+```bash
+npm run smoke:alignment
+```
+
+See [docs/smoke-tests.md](docs/smoke-tests.md) for expected output and common
+failure notes.
+
 Docs-only work, linting, typechecking, and unit tests usually do not require
 Firebase or Google credentials. If Android, iOS, or emulator setup fails, check
 the platform setup notes in `README.md`.

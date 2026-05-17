@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "security:secrets": "node scripts/ci/check-secrets.js",
+    "smoke:alignment": "node scripts/test_real_alignment.js",
     "test": "jest",
     "test:ci": "jest --ci --runInBand --coverage",
     "ci": "npm run security:secrets && npm run lint && npm run typecheck && npm run test:ci"
