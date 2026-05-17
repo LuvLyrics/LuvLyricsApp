@@ -11,6 +11,40 @@ import { getAllSongsWithLyrics, insertSong, clearAllData } from '../database/que
 // Export format version for compatibility
 const EXPORT_VERSION = '1.0';
 
+/**
+ * Sanitizes a string for safe use as a filename across
+ * Windows, iOS, and Android.
+ *
+ * - Replaces reserved chars: \ / : * ? " < > |
+ * - Removes control characters (0x00-0x1f, 0x7f)
+ * - Trims trailing dots and spaces (Windows path bug)
+ * - Truncates to 200 chars to stay well under FS limits
+ * - Avoids Windows reserved device names
+ * - Falls back to 'export' if the result collapses to empty
+ */
+export function sanitizeFilename(name: string): string {
+  const RESERVED = /[\\/:*?"<>|]/g;
+  const CONTROL = /[\x00-\x1f\x7f]/g;
+  const WINDOWS_DEVICE_NAME =
+    /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
+
+  let safe = name
+    .replace(RESERVED, '_')
+    .replace(CONTROL, '')
+    .replace(/[\s.]+$/, '')
+    .trim();
+
+  if (safe.length > 200) {
+    safe = safe.slice(0, 200).replace(/[\s.]+$/, '').trim();
+  }
+
+  if (!safe || WINDOWS_DEVICE_NAME.test(safe)) {
+    return 'export';
+  }
+
+  return safe;
+}
+
 interface ExportData {
   version: string;
   exportDate: string;
@@ -23,21 +57,22 @@ interface ExportData {
  */
 export const exportAllSongs = async (): Promise<string> => {
   const songs = await getAllSongsWithLyrics();
-  
+  const exportDate = new Date().toISOString();
+
   const exportData: ExportData = {
     version: EXPORT_VERSION,
-    exportDate: new Date().toISOString(),
+    exportDate,
     songs,
   };
-  
+
   const jsonString = JSON.stringify(exportData, null, 2);
-  const fileName = `lyricflow-backup-${Date.now()}.json`;
+  const fileName = `${sanitizeFilename(`lyricflow-backup-${exportDate}`)}.json`;
   const fileUri = FileSystem.documentDirectory + fileName;
-  
+
   await FileSystem.writeAsStringAsync(fileUri, jsonString, {
     encoding: FileSystem.EncodingType.UTF8,
   });
-  
+
   return fileUri;
 };
 
@@ -47,7 +82,7 @@ export const exportAllSongs = async (): Promise<string> => {
  */
 export const shareExportedFile = async (fileUri: string): Promise<void> => {
   const isAvailable = await Sharing.isAvailableAsync();
-  
+
   if (isAvailable) {
     await Sharing.shareAsync(fileUri, {
       mimeType: 'application/json',
@@ -89,14 +124,14 @@ export const importSongsFromJson = async (): Promise<number> => {
         // Check if song exists to decide on update vs insert or skip
         // For simplicity in this offline app, we'll try to insert and ignore clashes or generate new IDs if needed
         // But better user experience is to skip duplicates based on ID
-        await insertSong(song); 
+        await insertSong(song);
         importedCount++;
       } catch (error) {
         // ID conflict likely, skip or handle
         console.warn(`Skipping song ${song.title} due to import error`, error);
       }
     }
-    
+
     return importedCount;
   } catch (error) {
     console.error('Import failed:', error);
@@ -111,11 +146,11 @@ export const importSongsFromJson = async (): Promise<number> => {
 export const getStorageInfo = async (): Promise<{ bytes: number; formatted: string }> => {
   const docDir = FileSystem.documentDirectory;
   if (!docDir) return { bytes: 0, formatted: '0 KB' };
-  
+
   try {
     const info = await FileSystem.getInfoAsync(docDir);
     const bytes = info.exists && 'size' in info ? info.size : 0;
-    
+
     // Format bytes
     if (bytes < 1024) return { bytes, formatted: `${bytes} B` };
     if (bytes < 1024 * 1024) return { bytes, formatted: `${(bytes / 1024).toFixed(1)} KB` };
