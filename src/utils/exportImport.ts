@@ -10,6 +10,32 @@ import { getAllSongsWithLyrics, insertSong, clearAllData } from '../database/que
 
 // Export format version for compatibility
 const EXPORT_VERSION = '1.0';
+/**
+ * Sanitizes a string for safe use as a filename across
+ * Windows, iOS, and Android.
+ *
+ * - Replaces reserved chars: \ / : * ? " < > |
+ * - Removes control characters (0x00–0x1f, 0x7f)
+ * - Trims trailing dots and spaces (Windows path bug)
+ * - Truncates to 200 chars to stay well under FS limits
+ * - Falls back to 'export' if the result collapses to empty
+ */
+export function sanitizeFilename(name: string): string {
+  const RESERVED = /[\\/:*?"<>|]/g;
+  const CONTROL  = /[\x00-\x1f\x7f]/g;
+
+  let safe = name
+    .replace(RESERVED, '_')
+    .replace(CONTROL, '')
+    .replace(/[\s.]+$/, '')  // trailing dots/spaces
+    .trim();
+
+  if (safe.length > 200) {
+    safe = safe.slice(0, 200).replace(/[\s.]+$/, '').trim();
+  }
+
+  return safe.length > 0 ? safe : 'export';
+}
 
 interface ExportData {
   version: string;
