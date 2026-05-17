@@ -320,8 +320,8 @@ export const AudioDownloaderScreen: React.FC<AudioDownloaderProps> = ({ navigati
             }
             
         } catch (_error) {
-            updateTab(activeTabId, { isSearching: false, status: 'Search failed.' });
-            setToast({ visible: true, message: 'Search failed', type: 'error' });
+            updateTab(activeTabId, { isSearching: false, status: 'Search failed. Check connection and try again.' });
+            setToast({ visible: true, message: 'Search failed. Check connection and try again.', type: 'error' });
         }
     }, [activeTabId, titleQuery, artistQuery, updateTab]);
 
