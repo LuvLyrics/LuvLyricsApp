@@ -189,6 +189,25 @@ npm run typecheck
 npm test
 ```
 
+## Smoke Test Scripts
+
+Use the standalone smoke test when you want to sanity-check the real lyric alignment path without starting Expo or running the full Jest suite:
+
+```bash
+node scripts/test_real_alignment.js
+```
+
+A successful run exits with code 0 and prints the alignment stages followed by timestamped lyric lines. Expected output includes sections like:
+
+```text
+Loading assets...
+--- ALIGNING (WINDOWED) ---
+--- POST-PROCESSING: FIXING PILE-UPS (VAD ENFORCED STRETCH) ---
+[00:00.82] Two Augusts ago (Conf: 97%)
+```
+
+If the script fails, first confirm you are running it from the repository root with Node.js 20 or newer. If the output changes unexpectedly, include the command, the error or changed output, and your Node.js version when opening an issue or PR.
+
 ## Pull Request Checks
 
 Every pull request to `main` runs GitHub Actions from `.github/workflows/ci.yml`.
