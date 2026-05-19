@@ -4,21 +4,16 @@
  */
 
 import { LyricLine } from '../types/song';
+import { LrcLibTrackResponse } from '../types/providerResponses';
 import { parseTimestampedLyrics, hasValidTimestamps } from '../utils/timestampParser';
 
 
 const BASE_URL = 'https://lrclib.net/api';
 
-export interface LrcLibTrack {
-  id: number;
-  trackName: string;
-  artistName: string;
-  albumName: string;
-  duration: number;
-  instrumental: boolean;
-  plainLyrics: string;
-  syncedLyrics: string;
-}
+export type LrcLibTrack = LrcLibTrackResponse;
+
+const isAbortError = (error: unknown): error is Error =>
+  error instanceof Error && error.name === 'AbortError';
 
 export const LrcLibService = {
   /**
@@ -55,9 +50,9 @@ export const LrcLibService = {
       if (!response.ok) {
         throw new Error(`LRCLIB Search failed: ${response.status} ${response.statusText}`);
       }
-      return await response.json();
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+      return await response.json() as LrcLibTrack[];
+    } catch (error: unknown) {
+      if (isAbortError(error)) {
          console.warn('[LrcLibService] Search timed out');
       } else {
          console.error('[LrcLibService] Search error:', error);
@@ -100,9 +95,9 @@ export const LrcLibService = {
         if (response.status === 404) return null;
         throw new Error(`LRCLIB Get failed: ${response.status} ${response.statusText}`);
       }
-      return await response.json();
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+      return await response.json() as LrcLibTrack;
+    } catch (error: unknown) {
+      if (isAbortError(error)) {
          console.warn('[LrcLibService] GetLyrics timed out');
       } else {
          console.error('[LrcLibService] GetLyrics error:', error);

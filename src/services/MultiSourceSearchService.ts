@@ -1,4 +1,11 @@
 import { UnifiedSong } from '../types/song';
+import {
+  ProviderDownloadResponse,
+  ProviderImageResponse,
+  SaavnGaanaRecommendationsResponse,
+  SaavnGaanaSearchResponse,
+  SaavnGaanaSongResponse,
+} from '../types/providerResponses';
 
 // Fake browser headers to bypass Cloudflare Bot Protection
 const BROWSER_HEADERS = {
@@ -13,6 +20,57 @@ const SAAVN_API = 'https://jiosaavn-api-byprats.vercel.app/api';
 // LAYER 2: Gaana (Fallback)
 const GAANA_API = 'https://gaanaapibyprats.vercel.app/api';
 
+type ProviderSource = 'Saavn' | 'Gaana';
+
+const createTimeout = (ms: number): Promise<never> =>
+  new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), ms));
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const getBestImage = (images: ProviderImageResponse[] = []): ProviderImageResponse | undefined =>
+  images.find(i => i.quality === '500x500') || images[images.length - 1];
+
+const getBestDownload = (downloads: ProviderDownloadResponse[] = []): ProviderDownloadResponse | undefined =>
+  downloads.find(u => u.quality === '320kbps') || downloads[downloads.length - 1];
+
+const getArtistName = (song: SaavnGaanaSongResponse): string => {
+  if (typeof song.primaryArtists === 'string') {
+    return song.primaryArtists;
+  }
+
+  const primaryArtists = song.artists?.primary;
+  if (primaryArtists?.[0]) {
+    return primaryArtists.map(a => a.name).filter(Boolean).join(', ');
+  }
+
+  return 'Unknown Artist';
+};
+
+const parsePlays = (val: string | number | undefined): number => {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') return parseInt(val.replace(/[^0-9]/g, '') || '0', 10);
+  return 0;
+};
+
+const mapProviderSong = (song: SaavnGaanaSongResponse, source: ProviderSource): UnifiedSong => {
+  const highResImage = getBestImage(song.image);
+  const topQuality = getBestDownload(song.downloadUrl);
+
+  return {
+    id: song.id ?? '',
+    title: song.name || song.title || '',
+    artist: getArtistName(song),
+    highResArt: highResImage?.url || '',
+    downloadUrl: topQuality?.url || '',
+    hasLyrics: song.hasLyrics === true,
+    source,
+    duration: song.duration,
+    playCount: source === 'Saavn' ? parsePlays(song.playCount || song.play_count) : 0,
+    language: song.language,
+  };
+};
+
 /**
  * ============================================================================
  * LAYER 2: GAANA (Fallback Source)
@@ -23,9 +81,7 @@ async function searchGaana(query: string): Promise<UnifiedSong[]> {
     console.log(`[Gaana] Searching (Fallback): ${query}`);
     const searchUrl = `${GAANA_API}/search/songs?query=${encodeURIComponent(query)}&limit=20`;
 
-    const timeoutPromise = new Promise<any>((_, reject) => 
-        setTimeout(() => reject(new Error('TIMEOUT')), 25000)
-    );
+    const timeoutPromise = createTimeout(25000);
 
     const response = await Promise.race([
         fetch(searchUrl, {
@@ -36,35 +92,16 @@ async function searchGaana(query: string): Promise<UnifiedSong[]> {
 
     if (!response.ok) return [];
 
-    const json = await response.json();
-    if (!json.success || !json.data || !json.data.results) return [];
+    const json = await response.json() as SaavnGaanaSearchResponse;
+    const results = json.data?.results;
+    if (!json.success || !Array.isArray(results)) return [];
 
-    return json.data.results.map((song: any) => {
-      const imageArray = song.image || [];
-      const highResImage = imageArray.find((i: any) => i.quality === '500x500') || imageArray[imageArray.length - 1];
-      const urlArray = song.downloadUrl || [];
-      const topQuality = urlArray.find((u: any) => u.quality === '320kbps') || urlArray[urlArray.length - 1];
+    return results
+      .map(song => mapProviderSong(song, 'Gaana'))
+      .filter((s: UnifiedSong) => s.downloadUrl);
 
-      let artistName = 'Unknown Artist';
-      if (typeof song.primaryArtists === 'string') artistName = song.primaryArtists;
-      else if (song.artists?.primary?.[0]) artistName = song.artists.primary.map((a: any) => a.name).join(', ');
-
-      return {
-        id: song.id,
-        title: song.name || song.title,
-        artist: artistName,
-        highResArt: highResImage?.url || '',
-        downloadUrl: topQuality?.url || '',
-        hasLyrics: song.hasLyrics === true,
-        source: 'Gaana' as const, // Distinct source
-        duration: song.duration,
-        playCount: 0, // Gaana doesn't always provide playCount
-        language: song.language
-      };
-    }).filter((s: UnifiedSong) => s.downloadUrl);
-
-  } catch (error: any) {
-    console.warn(`[Gaana] Search failed: ${error.message}`);
+  } catch (error: unknown) {
+    console.warn(`[Gaana] Search failed: ${getErrorMessage(error)}`);
     return [];
   }
 }
@@ -79,9 +116,7 @@ async function searchSaavn(query: string): Promise<UnifiedSong[]> {
     console.log(`[Saavn] Searching: ${query}`);
     const searchUrl = `${SAAVN_API}/search/songs?query=${encodeURIComponent(query)}&limit=20`;
 
-    const timeoutPromise = new Promise<any>((_, reject) => 
-        setTimeout(() => reject(new Error('TIMEOUT')), 25000)
-    );
+    const timeoutPromise = createTimeout(25000);
 
     const response = await Promise.race([
         fetch(searchUrl, {
@@ -95,48 +130,18 @@ async function searchSaavn(query: string): Promise<UnifiedSong[]> {
         return [];
     }
 
-    const json = await response.json();
-    if (!json.success || !json.data || !json.data.results) {
+    const json = await response.json() as SaavnGaanaSearchResponse;
+    const results = json.data?.results;
+    if (!json.success || !Array.isArray(results)) {
          return [];
     }
 
-    const results = json.data.results;
+    return results
+      .map(song => mapProviderSong(song, 'Saavn'))
+      .filter((s: UnifiedSong) => s.downloadUrl);
 
-    return results.map((song: any) => {
-      const imageArray = song.image || [];
-      const highResImage = imageArray.find((i: any) => i.quality === '500x500') || imageArray[imageArray.length - 1];
-      const urlArray = song.downloadUrl || [];
-      const topQuality = urlArray.find((u: any) => u.quality === '320kbps') || urlArray[urlArray.length - 1];
-
-      let artistName = 'Unknown Artist';
-      if (typeof song.primaryArtists === 'string') {
-          artistName = song.primaryArtists;
-      } else if (song.artists && song.artists.primary && song.artists.primary[0]) {
-          artistName = song.artists.primary.map((a: any) => a.name).join(', ');
-      }
-
-      const parsePlays = (val: any) => {
-          if (typeof val === 'number') return val;
-          if (typeof val === 'string') return parseInt(val.replace(/[^0-9]/g, '') || '0');
-          return 0;
-      };
-
-      return {
-        id: song.id,
-        title: song.name || song.title,
-        artist: artistName,
-        highResArt: highResImage?.url || '',
-        downloadUrl: topQuality?.url || '',
-        hasLyrics: song.hasLyrics === true,
-        source: 'Saavn' as const,
-        duration: song.duration,
-        playCount: parsePlays(song.playCount || song.play_count),
-        language: song.language
-      };
-    }).filter((s: UnifiedSong) => s.downloadUrl);
-
-  } catch (error: any) {
-    console.warn(`[Saavn] Search failed: ${error.message}`);
+  } catch (error: unknown) {
+    console.warn(`[Saavn] Search failed: ${getErrorMessage(error)}`);
     return [];
   }
 }
@@ -174,8 +179,10 @@ export async function searchMusic(query: string, artistName?: string, onProgress
           return (b.playCount || 0) - (a.playCount || 0);
       });
 
-  } catch (error: any) {
-      if (error.message === 'TIMEOUT' || error.name === 'AbortError' || error.message?.includes('Network request failed')) {
+  } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      const name = error instanceof Error ? error.name : '';
+      if (message === 'TIMEOUT' || name === 'AbortError' || message.includes('Network request failed')) {
           console.warn(`[SearchEngine] Network timeout/error for "${query}".`);
       } else {
           console.error(`[SearchEngine] ⚠️ Search Failed:`, error);
@@ -193,43 +200,14 @@ export async function getRecommendations(songId: string): Promise<UnifiedSong[]>
     const response = await fetch(url, { headers: BROWSER_HEADERS });
     if (!response.ok) return [];
 
-    const json = await response.json();
+    const json = await response.json() as SaavnGaanaRecommendationsResponse;
     if (!json.success || !json.data) return [];
 
     const results = json.data;
 
-    return (Array.isArray(results) ? results : [results]).map((song: any) => {
-      const imageArray = song.image || [];
-      const highResImage = imageArray.find((i: any) => i.quality === '500x500') || imageArray[imageArray.length - 1];
-      const urlArray = song.downloadUrl || [];
-      const topQuality = urlArray.find((u: any) => u.quality === '320kbps') || urlArray[urlArray.length - 1];
-
-      let artistName = 'Unknown Artist';
-      if (typeof song.primaryArtists === 'string') {
-          artistName = song.primaryArtists;
-      } else if (song.artists && song.artists.primary && song.artists.primary[0]) {
-          artistName = song.artists.primary.map((a: any) => a.name).join(', ');
-      }
-
-      const parsePlays = (val: any) => {
-          if (typeof val === 'number') return val;
-          if (typeof val === 'string') return parseInt(val.replace(/[^0-9]/g, '') || '0');
-          return 0;
-      };
-
-      return {
-        id: song.id,
-        title: song.name || song.title,
-        artist: artistName,
-        highResArt: highResImage?.url || '',
-        downloadUrl: topQuality?.url || '',
-        hasLyrics: song.hasLyrics === true,
-        source: 'Saavn' as const,
-        duration: song.duration,
-        playCount: parsePlays(song.playCount || song.play_count),
-        language: song.language
-      };
-    }).filter((s: UnifiedSong) => s.downloadUrl);
+    return (Array.isArray(results) ? results : [results])
+      .map(song => mapProviderSong(song, 'Saavn'))
+      .filter((s: UnifiedSong) => s.downloadUrl);
 
   } catch (error) {
     console.warn(`[SaavnRecs] Failed:`, error);

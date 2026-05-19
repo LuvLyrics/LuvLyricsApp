@@ -4,6 +4,7 @@
  */
 
 import { LyricLine } from '../types/song';
+import { GeniusHitResponse, GeniusSearchResponse } from '../types/providerResponses';
 
 const GENIUS_API_URL = 'https://api.genius.com';
 const ACCESS_TOKEN = 'rKvOqiyrZIcfa6i3E6z2Q2LMSr79s89XOYzJJkiQ5OOsncR23Uf6ZoUhW_nh6sJR'; // Provided by user
@@ -17,13 +18,16 @@ export interface GeniusTrack {
   plainLyrics: string;
 }
 
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
 export const GeniusService = {
   /**
    * 1. Search Genius API for a song to get its URL
    */
   searchGenius: async (query: string): Promise<GeniusTrack[]> => {
     try {
-      const timeoutPromise = new Promise<any>((_, reject) => 
+      const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('TIMEOUT')), 10000)
       );
 
@@ -41,11 +45,11 @@ export const GeniusService = {
         return [];
       }
 
-      const data = await response.json();
+      const data = await response.json() as GeniusSearchResponse;
       const hits = data.response?.hits || [];
 
       // Map hits to simpler objects
-      return hits.map((hit: any) => ({
+      return hits.map((hit: GeniusHitResponse) => ({
         id: hit.result.id,
         title: hit.result.title,
         artist: hit.result.primary_artist.name,
@@ -54,8 +58,8 @@ export const GeniusService = {
         plainLyrics: '' // To be filled by scraping
       }));
 
-    } catch (error: any) {
-      if (error.message === 'TIMEOUT') {
+    } catch (error: unknown) {
+      if (getErrorMessage(error) === 'TIMEOUT') {
           console.warn('[GeniusService] Search timed out');
       } else {
           console.error('[GeniusService] Search error:', error);
@@ -70,7 +74,7 @@ export const GeniusService = {
    */
   scrapeGeniusLyrics: async (url: string): Promise<string | null> => {
     try {
-      const timeoutPromise = new Promise<any>((_, reject) => 
+      const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('TIMEOUT')), 15000)
       );
 
