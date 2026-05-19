@@ -163,6 +163,8 @@ Recommended labels:
 - `help wanted` for open contributions
 - `bug`, `enhancement`, `documentation`, `performance`, `security`
 
+For the full issue review process, see the [Issue Triage Guide](docs/issue-triage.md).
+
 ## Security and Secrets
 
 - Do not commit secrets, API keys, or credentials
