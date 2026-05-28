@@ -25,10 +25,10 @@ export const useDesktopBridgeSettingsStore = create<DesktopBridgeSettings>((set)
     const { desktopBridgeService } = await import('../services/DesktopBridgeService');
     if (v) {
       await desktopBridgeService.start();
-      console.log('[DesktopBridgeSettings] Desktop bridge started from settings toggle');
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DesktopBridgeSettings] Desktop bridge started from settings toggle');
     } else {
       desktopBridgeService.stop();
-      console.log('[DesktopBridgeSettings] Desktop bridge stopped from settings toggle');
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DesktopBridgeSettings] Desktop bridge stopped from settings toggle');
     }
   },
 
@@ -48,13 +48,13 @@ export const useDesktopBridgeSettingsStore = create<DesktopBridgeSettings>((set)
       set({ desktopConnectEnabled, allowDesktopDownloads });
 
       if (desktopConnectEnabled) {
-        console.log('[DesktopBridgeSettings] desktopBridgeSettingsStore.load() starting desktop bridge');
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DesktopBridgeSettings] desktopBridgeSettingsStore.load() starting desktop bridge');
         const { desktopBridgeService } = await import('../services/DesktopBridgeService');
         await desktopBridgeService.start();
-        console.log('[DesktopBridgeSettings] Desktop bridge started from desktopBridgeSettingsStore.load()');
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DesktopBridgeSettings] Desktop bridge started from desktopBridgeSettingsStore.load()');
       }
     } catch (e) {
-      console.warn('[DesktopBridgeSettings] Failed to load:', e);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[DesktopBridgeSettings] Failed to load:', e);
     }
   },
 }));

@@ -257,7 +257,7 @@ const SynchronizedLyrics = forwardRef<SynchronizedLyricsRef, SynchronizedLyricsP
         });
         if (isInitial) hasInitialScrolled.current = true;
       } catch (e) {
-        if (__DEV__) console.log('[SynchronizedLyrics] Scroll failed:', e);
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[SynchronizedLyrics] Scroll failed:', e);
       }
     };
 

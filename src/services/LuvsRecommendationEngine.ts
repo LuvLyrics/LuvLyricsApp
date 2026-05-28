@@ -30,7 +30,7 @@ class LuvsRecommendationEngine {
     const songs = songsStore.songs;
 
     if (songs.length === 0) {
-      if (__DEV__) console.log('[LuvsRecoEngine] No songs in library, skipping seed');
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[LuvsRecoEngine] No songs in library, skipping seed');
       this.seededFromLibrary = true;
       return;
     }
@@ -45,7 +45,7 @@ class LuvsRecommendationEngine {
         return;
     }
 
-    if (__DEV__) console.log(`[LuvsRecoEngine] 🌱 Seeding from ${songs.length} library songs...`);
+    if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[LuvsRecoEngine] 🌱 Seeding from ${songs.length} library songs...`);
 
     // Record each song as a "liked" interaction to build artist preferences
     // We do this efficiently by batch updating if possible, or just strict loop
@@ -71,8 +71,8 @@ class LuvsRecommendationEngine {
     prefsStore.analyzePreferences();
 
     this.seededFromLibrary = true;
-    if (__DEV__) console.log('[LuvsRecoEngine] ✅ Seeded preferences from library!');
-    if (__DEV__) console.log('[LuvsRecoEngine] Top artists derived:', prefsStore.getTopArtistNames(10));
+    if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[LuvsRecoEngine] ✅ Seeded preferences from library!');
+    if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[LuvsRecoEngine] Top artists derived:', prefsStore.getTopArtistNames(10));
   }
 
   /**
@@ -105,7 +105,7 @@ class LuvsRecommendationEngine {
     const songsStore = useSongsStore.getState();
     const prefsStore = useLuvsPreferencesStore.getState();
     const languageWeights = prefsStore.getLanguageWeights();
-    if (__DEV__) console.log('[LuvsReco] 📊 Current Language Weights:', languageWeights.filter(w => w.weight > 0).map(w => `${w.language}: ${w.weight}%`));
+    if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[LuvsReco] 📊 Current Language Weights:', languageWeights.filter(w => w.weight > 0).map(w => `${w.language}: ${w.weight}%`));
     
     // 1. Get Top Artists (Explicitly Liked / Watched)
     const topArtists = prefsStore.getTopArtistNames(20);
@@ -123,11 +123,11 @@ class LuvsRecommendationEngine {
     const cleanPool = [...topArtists, ...libraryArtists].filter(a => !skippedArtists.has(a.toLowerCase()));
     const uniquePool = Array.from(new Set(cleanPool));
     
-    if (__DEV__) console.log(`[LuvsRecoEngine] 🎱 Candidate Artist Pool Size: ${uniquePool.length}`);
+    if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[LuvsRecoEngine] 🎱 Candidate Artist Pool Size: ${uniquePool.length}`);
 
     if (uniquePool.length === 0) {
         // Fallback to trending if no library/history data
-        if (__DEV__) console.log('[LuvsRecoEngine] ⚠️ No personalized artists found. Using Language Trending fallback.');
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[LuvsRecoEngine] ⚠️ No personalized artists found. Using Language Trending fallback.');
         const fallbackQueries: GeneratedQuery[] = [];
         const activeLanguages = languageWeights.filter(w => w.weight > 0);
         
@@ -173,7 +173,7 @@ class LuvsRecommendationEngine {
           });
      }
 
-    if (__DEV__) console.log(`[LuvsReco] 🎨 Generated ${generatedQueries.length} Personalized Queries:`, generatedQueries.map(q => `${q.query} (${q.language})`));
+    if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[LuvsReco] 🎨 Generated ${generatedQueries.length} Personalized Queries:`, generatedQueries.map(q => `${q.query} (${q.language})`));
     return generatedQueries;
   }
 
@@ -188,7 +188,7 @@ class LuvsRecommendationEngine {
       const saavnResults = await MultiSourceSearchService.searchSaavn(query).catch(() => [] as UnifiedSong[]);
       results.push(...saavnResults);
     } catch (error) {
-      if (__DEV__) console.warn(`[LuvsRecoEngine] Search failed for "${query}":`, error);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn(`[LuvsRecoEngine] Search failed for "${query}":`, error);
     }
 
     return results;
@@ -254,7 +254,7 @@ class LuvsRecommendationEngine {
     // 3. Flatten into one list
     itemsPerArtist.forEach(songs => mixtape.push(...songs));
 
-    if (__DEV__) console.log(`[LuvsRecoEngine] 💿 Mixtape Generated: ${mixtape.length} songs from ${weightedQueries.length} artists`);
+    if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[LuvsRecoEngine] 💿 Mixtape Generated: ${mixtape.length} songs from ${weightedQueries.length} artists`);
 
     // 4. Interleave and Shuffle segments for maximum variety
     const finalFeed = this.interleaveResults(mixtape);
@@ -331,9 +331,9 @@ class LuvsRecommendationEngine {
       const newFeed = [...feedSongs];
       newFeed.splice(currentIndex + 1, 0, ...toInject);
       setFeedSongs(newFeed);
-      if (__DEV__) console.log(`[LuvsReco] 🪄 Injected ${toInject.length} similar songs.`);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[LuvsReco] 🪄 Injected ${toInject.length} similar songs.`);
     } catch (error) {
-      if (__DEV__) console.error('[LuvsReco] Discover similar failed:', error);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[LuvsReco] Discover similar failed:', error);
     }
   }
 
@@ -370,7 +370,7 @@ class LuvsRecommendationEngine {
       const localMatch = localSongMap.get(key);
 
       if (localMatch) {
-          if (__DEV__) console.log(`[Luvs] 🏠 Found local match for ${song.title}, swapping!`);
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[Luvs] 🏠 Found local match for ${song.title}, swapping!`);
           // Convert Local Song to UnifiedSong
           return {
               id: localMatch.id,
@@ -406,7 +406,7 @@ class LuvsRecommendationEngine {
       );
       
       if (isDevotional) {
-          if (__DEV__) console.log(`[Luvs] 🕊️ Filtered devotional content: ${song.title}`);
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[Luvs] 🕊️ Filtered devotional content: ${song.title}`);
           return false;
       }
 
@@ -422,7 +422,7 @@ class LuvsRecommendationEngine {
       );
 
       if (isUnwanted) {
-          if (__DEV__) console.log(`[Luvs] 🚫 Filtered unwanted edit: ${song.title}`);
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[Luvs] 🚫 Filtered unwanted edit: ${song.title}`);
           return false;
       }
 
@@ -435,7 +435,7 @@ class LuvsRecommendationEngine {
       // If song has NO language property, and we have restrictions, we MUST be cautious.
       if (!songLang) {
           if (isLanguageRestricted) {
-              console.log(`[Luvs] 🚫 Filtered song with MISSING language (Restriction Active): ${song.title}`);
+              if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[Luvs] 🚫 Filtered song with MISSING language (Restriction Active): ${song.title}`);
               return false;
           }
           return true;
@@ -447,12 +447,12 @@ class LuvsRecommendationEngine {
       // BLOCK if weight is explicitly 0 or language not found in a restricted set
       if (isLanguageRestricted) {
           if (!langPref || langPref.weight === 0) {
-              console.log(`[Luvs] 🌍 Filtered forbidden/unknown language (${song.language || 'none'}): ${song.title}`);
+              if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[Luvs] 🌍 Filtered forbidden/unknown language (${song.language || 'none'}): ${song.title}`);
               return false;
           }
       }
 
-      if (__DEV__) console.log(`[Luvs] ✅ PASSED Filter: ${song.title} (${song.language || 'no-lang'}) | Weight: ${langPref?.weight}%`);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[Luvs] ✅ PASSED Filter: ${song.title} (${song.language || 'no-lang'}) | Weight: ${langPref?.weight}%`);
       return true;
     });
   }

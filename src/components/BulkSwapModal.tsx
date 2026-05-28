@@ -36,7 +36,7 @@ export const BulkSwapModal = ({ visible, initialQuery, onClose, onSelect }: Bulk
             const res = await MultiSourceSearchService.searchMusic(searchText);
             setResults(res);
         } catch (e) {
-            console.error(e);
+            if (typeof __DEV__ !== 'undefined' && __DEV__) console.error(e);
         } finally {
             setIsLoading(false);
         }

@@ -60,7 +60,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     // Listen for remote Next/Prev commands from native side
     const subscription = (player as any).addListener('remoteCommand', (event: { command: string }) => {
-      if (__DEV__) console.log('[PlayerContext] Remote command received:', event.command);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[PlayerContext] Remote command received:', event.command);
       const store = usePlayerStore.getState();
       if (event.command === 'next') {
         store.nextInPlaylist();
@@ -102,7 +102,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (shouldAdvance) {
         endHandledForSongIdRef.current = activeSongId;
         store.setIsPlaying(true);
-        if (__DEV__) console.log(`[PlayerContext] Song finished (${didJustFinish ? 'didJustFinish' : 'nearEndFallback'}), playing next...`);
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[PlayerContext] Song finished (${didJustFinish ? 'didJustFinish' : 'nearEndFallback'}), playing next...`);
         store.nextInPlaylist();
         return;
       }

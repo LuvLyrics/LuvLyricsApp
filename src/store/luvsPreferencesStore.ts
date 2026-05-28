@@ -200,7 +200,7 @@ export const useLuvsPreferencesStore = create<LuvsPreferencesState>((set, get) =
               l.language === language ? { ...l, weight } : l
           );
           const newActive = newPrefs.filter(l => l.weight > 0).map(l => l.language.toLowerCase());
-          if (__DEV__) console.log(`[LuvsPrefs] 🔄 Weight Update: ${language} -> ${weight}% | Active:`, newActive);
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[LuvsPrefs] 🔄 Weight Update: ${language} -> ${weight}% | Active:`, newActive);
           return { preferredLanguages: newPrefs, luvsLanguages: newActive };
       });
       get().saveToStorage();
@@ -242,7 +242,7 @@ export const useLuvsPreferencesStore = create<LuvsPreferencesState>((set, get) =
       ],
       explicitLikes: [],
     });
-    AsyncStorage.removeItem(PREFS_KEY).catch(console.error);
+    if (typeof __DEV__ !== 'undefined' && __DEV__) AsyncStorage.removeItem(PREFS_KEY).catch(console.error);
   },
 
   loadFromStorage: async () => {
@@ -292,10 +292,10 @@ export const useLuvsPreferencesStore = create<LuvsPreferencesState>((set, get) =
           luvsLanguages: loadedLangs.filter((l: any) => l.weight > 0).map((l: any) => l.language.toLowerCase()),
           explicitLikes: parsed.explicitLikes || [],
         });
-        if (__DEV__) console.log('[LuvsPrefs] Loaded preferences from storage');
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[LuvsPrefs] Loaded preferences from storage');
       }
     } catch (error) {
-      if (__DEV__) console.error('[ReelsPrefs] Failed to load preferences:', error);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[ReelsPrefs] Failed to load preferences:', error);
     }
   },
 
@@ -311,7 +311,7 @@ export const useLuvsPreferencesStore = create<LuvsPreferencesState>((set, get) =
         explicitLikes,
       }));
     } catch (error) {
-      if (__DEV__) console.error('[ReelsPrefs] Failed to save preferences:', error);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[ReelsPrefs] Failed to save preferences:', error);
     }
   },
 }));

@@ -21,9 +21,9 @@ class DownloadManager {
         if (download) {
             try {
                 await download.pauseAsync();
-                if (__DEV__) console.log(`[DownloadManager] Paused: ${id}`);
+                if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[DownloadManager] Paused: ${id}`);
             } catch (e) {
-                if (__DEV__) console.error(`[DownloadManager] Pause failed: ${id}`, e);
+                if (typeof __DEV__ !== 'undefined' && __DEV__) console.error(`[DownloadManager] Pause failed: ${id}`, e);
             }
         }
     }
@@ -33,9 +33,9 @@ class DownloadManager {
         if (download) {
             try {
                 await download.resumeAsync();
-                if (__DEV__) console.log(`[DownloadManager] Resumed: ${id}`);
+                if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[DownloadManager] Resumed: ${id}`);
             } catch (e) {
-                if (__DEV__) console.error(`[DownloadManager] Resume failed: ${id}`, e);
+                if (typeof __DEV__ !== 'undefined' && __DEV__) console.error(`[DownloadManager] Resume failed: ${id}`, e);
             }
         }
     }
@@ -80,7 +80,7 @@ class DownloadManager {
             const format = staging.selectedQuality.format || 'mp3';
             const audioFile = `${songDir}audio.${format}`;
             
-            if (__DEV__) console.log(`[DownloadManager] Downloading Audio: ${downloadUrl.substring(0, 80)}...`);
+            if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[DownloadManager] Downloading Audio: ${downloadUrl.substring(0, 80)}...`);
 
             const audioDownload = FileSystem.createDownloadResumable(
                 downloadUrl,
@@ -132,7 +132,7 @@ class DownloadManager {
 
                 if (safDir) {
                     updateProgress(0.96); // 97% - Exporting
-                    if (__DEV__) console.log('[DownloadManager] SAF configured, exporting to:', safDir);
+                    if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DownloadManager] SAF configured, exporting to:', safDir);
                     
                     const mimeType = format === 'm4a' ? 'audio/mp4' : 'audio/mpeg';
                     const friendlyName = `${staging.artist} - ${staging.title}`;
@@ -146,7 +146,7 @@ class DownloadManager {
                     await FileSystem.writeAsStringAsync(safUri, fileContent, { encoding: FileSystem.EncodingType.Base64 });
                     
                     finalAudioUri = safUri;
-                    if (__DEV__) console.log(`[DownloadManager] SAF export success. URI: ${safUri.substring(0, 80)}...`);
+                    if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[DownloadManager] SAF export success. URI: ${safUri.substring(0, 80)}...`);
                     
                     // Optional: Delete internal file to save space? 
                     // No, let's keep it as cache/backup or delete it?
@@ -156,7 +156,7 @@ class DownloadManager {
                     // (Commented out for safety for now)
                 }
             } catch (e) {
-                if (__DEV__) console.warn('[DownloadManager] SAF Export Failed (using internal storage):', e);
+                if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[DownloadManager] SAF Export Failed (using internal storage):', e);
                 // Fallback to internal storage (audioFile)
             }
 

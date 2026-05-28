@@ -63,7 +63,7 @@ export class TransliterationService {
             
             raw = academic;
         } catch (err) {
-            console.error('[Transliteration] Error:', err);
+            if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[Transliteration] Error:', err);
             // Fallback: If Sanscript fails, return original text
             return text; 
         }

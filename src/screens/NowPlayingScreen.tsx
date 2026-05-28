@@ -206,7 +206,7 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
 
         // If store is empty/wrong, fetch DB immediately
         if (!songToPlay || !songToPlay.audioUri) {
-             if (__DEV__) console.log('[NowPlaying] Fetching song from DB...');
+             if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[NowPlaying] Fetching song from DB...');
              songToPlay = await queries.getSongById(targetSongId);
         }
 
@@ -218,14 +218,14 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
         // 2. Play Audio (Priority)
         // If this exact song is already loaded, never replace again.
         if (loadedAudioId === targetSongId) {
-           if (__DEV__) console.log('[NowPlaying] Audio already loaded');
+           if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[NowPlaying] Audio already loaded');
            if (!storePlaying) player?.play();
         } else {
            // Prevent duplicate replace calls while an in-flight load for the same song exists.
            if (activeLoadSongIdRef.current === targetSongId) return;
            activeLoadSongIdRef.current = targetSongId;
            // Load new
-           if (__DEV__) console.log('[NowPlaying] Loading audio:', songToPlay.title);
+           if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[NowPlaying] Loading audio:', songToPlay.title);
            await player?.replace(songToPlay.audioUri); // This is the heavy op
            if (cancelled) { activeLoadSongIdRef.current = null; return; }
            setLoadedAudioId(targetSongId);
@@ -237,7 +237,7 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
         // If the initial song didn't have lyrics (common from Library list), fetch them now
         // We do this AFTER audio starts to avoid delaying playback
         if (!songToPlay.lyrics || songToPlay.lyrics.length === 0) {
-            if (__DEV__) console.log('[NowPlaying] Hydrating lyrics in background...');
+            if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[NowPlaying] Hydrating lyrics in background...');
             const fullSong = await queries.getSongById(targetSongId);
             if (fullSong && fullSong.lyrics.length > 0) {
                 updateCurrentSong({ lyrics: fullSong.lyrics, lyricSource: (fullSong.lyricSource || 'plain') as any });
@@ -246,7 +246,7 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
 
       } catch (error) {
         activeLoadSongIdRef.current = null;
-        if (__DEV__) console.error('Failed to load song:', error);
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('Failed to load song:', error);
         Alert.alert('Error', 'Could not load audio file.');
       }
     };
@@ -275,7 +275,7 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
                 ? storeDuration 
                 : (currentSong?.duration || 180);
              
-             console.log(`[NowPlaying] âš ï¸ Detected collapsed lyrics. Auto-generating timestamps for ${duration}s`);
+             if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[NowPlaying] âš ï¸ Detected collapsed lyrics. Auto-generating timestamps for ${duration}s`);
              
              // Auto-distribute
              const newLyrics = rawLyrics.map((line, index) => ({
@@ -614,7 +614,7 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
                         await queries.updateSong(updatedSong);
                         addRecentArt(uri);
                    } catch (e) {
-                       if (__DEV__) console.error('[NowPlaying] Failed to save cover:', e);
+                       if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[NowPlaying] Failed to save cover:', e);
                        // Revert optimistic update if needed, but user just sees error
                    }
                }

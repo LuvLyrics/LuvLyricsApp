@@ -2,7 +2,7 @@ import { lyricaService, LyricaResult } from './LyricaService';
 
 /**
  * Maps internal/network errors to user-friendly messages.
- * Keeps console.error for debug, surfaces concise text for UI.
+ if (typeof __DEV__ !== 'undefined' && __DEV__) * Keeps console.error for debug, surfaces concise text for UI.
  */
 export function getLyricsFriendlyError(error: unknown): string {
   if (error instanceof Error) {
@@ -38,12 +38,12 @@ export const MultiSourceLyricsService = {
     duration?: number
   ): Promise<LyricaResult[]> => {
     try {
-      console.log('[LyricsEngine] Restricted to Lyrica only (slow synced > fast synced > plain)');
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[LyricsEngine] Restricted to Lyrica only (slow synced > fast synced > plain)');
 
       const result = await lyricaService.fetchLyrics(title, artist, false, duration);
       return result ? [result] : [];
     } catch (error) {
-      console.error('[LyricsEngine] Critical failure in fetchLyricsParallel:', error);
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[LyricsEngine] Critical failure in fetchLyricsParallel:', error);
       throw error;
     }
   }

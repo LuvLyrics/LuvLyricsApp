@@ -113,7 +113,7 @@ const LuvsScreen: React.FC = () => {
 
   // Reload Feed Button Logic
   const handleReload = async () => {
-    if (__DEV__) console.log('[Luvs] 🔄 Reloading feed...');
+    if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[Luvs] 🔄 Reloading feed...');
     setIsPlaying(false);
     await luvsBufferManager.stopAll(); // Stop audio first
     await luvsRecommendationEngine.refreshRecommendation();
@@ -197,9 +197,9 @@ const LuvsScreen: React.FC = () => {
           });
 
           if (skipped) {
-            if (__DEV__) console.log(`[Luvs] ⏭️ Skipped: ${prevSong.title} (${watchDuration.toFixed(1)}s)`);
+            if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[Luvs] ⏭️ Skipped: ${prevSong.title} (${watchDuration.toFixed(1)}s)`);
           } else {
-            if (__DEV__) console.log(`[Luvs] 👀 Watched: ${prevSong.title} for ${watchDuration.toFixed(1)}s`);
+            if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[Luvs] 👀 Watched: ${prevSong.title} for ${watchDuration.toFixed(1)}s`);
           }
         }
 
@@ -238,7 +238,7 @@ const LuvsScreen: React.FC = () => {
         message: `🎵 Check out "${song.title}" by ${song.artist || 'Unknown Artist'}!`,
       });
     } catch {
-      if (__DEV__) console.log('Share cancelled');
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('Share cancelled');
     }
   }, []);
 
@@ -318,7 +318,7 @@ const LuvsScreen: React.FC = () => {
           getItemLayout={getItemLayout}
           extraData={vault} 
           onScrollToIndexFailed={(info) => {
-            if (__DEV__) console.warn('[Luvs] Scroll to index failed:', info.index);
+            if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[Luvs] Scroll to index failed:', info.index);
             setTimeout(() => {
               flatListRef.current?.scrollToIndex({
                  index: Math.min(info.index, feedSongs.length - 1),

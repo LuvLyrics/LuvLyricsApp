@@ -284,7 +284,7 @@ export const AudioDownloaderScreen: React.FC<AudioDownloaderProps> = ({ navigati
         });
 
         try {
-            if (__DEV__) console.log(`[Tab-${activeTabId.slice(-4)}] 🔍 Searching: ${finalQuery}`);
+            if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[Tab-${activeTabId.slice(-4)}] 🔍 Searching: ${finalQuery}`);
             const results = await MultiSourceSearchService.searchMusic(finalQuery, artistQuery, (status) => {
                  updateTab(activeTabId, { status });
             });
@@ -295,7 +295,7 @@ export const AudioDownloaderScreen: React.FC<AudioDownloaderProps> = ({ navigati
                 
                 // Fallback: If strict filtering hid everything, but we have results, show them!
                 if (exactMatches.length === 0 && remixesAndCovers.length === 0 && results.length > 0) {
-                     if (__DEV__) console.log('[AudioDownloader] Strict filter hid all results. Falling back to raw.');
+                     if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[AudioDownloader] Strict filter hid all results. Falling back to raw.');
                      updateTab(activeTabId, { 
                         results, 
                         remixResults: [],
@@ -688,7 +688,7 @@ Only provide the JSON array, no other text.`;
                     }
                     updateTab(activeTabId, { bulkItems: updatedItems });
                 } catch (error) {
-                    console.warn(`[BulkSearch] Item ${i} failed:`, error);
+                    if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn(`[BulkSearch] Item ${i} failed:`, error);
                     const tabAfterError = useDownloaderTabStore.getState().tabs.find(t => t.id === activeTabId);
                     if (tabAfterError && tabAfterError.bulkItems) {
                         const errorItems = [...tabAfterError.bulkItems];
@@ -766,7 +766,7 @@ Only provide the JSON array, no other text.`;
                         const hasSynced = song.lyrics && song.lyrics.some(l => l.timestamp && l.timestamp > 0);
                         if (!hasSynced) {
                             useLyricsScanQueueStore.getState().addToQueue(song, true);
-                            if (__DEV__) console.log(`[BulkImport] Queued existing song "${song.title}" for lyrics scan`);
+                            if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[BulkImport] Queued existing song "${song.title}" for lyrics scan`);
                         }
                     }
                 }

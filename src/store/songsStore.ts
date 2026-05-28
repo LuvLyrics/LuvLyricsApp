@@ -59,10 +59,10 @@ export const useSongsStore = create<SongsState>()(
         
         try {
           const songs = await queries.getAllSongs();
-          if (__DEV__) console.log('[STORE] Fetched songs:', songs.length);
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[STORE] Fetched songs:', songs.length);
           set({ songs, isLoading: false });
         } catch (error) {
-          console.error('[STORE] Fetch error:', error);
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[STORE] Fetch error:', error);
           set({ 
             error: error instanceof Error ? error.message : 'Failed to fetch songs', 
             isLoading: false 
@@ -75,10 +75,10 @@ export const useSongsStore = create<SongsState>()(
         set({ isLoading: true, error: null });
         try {
           const hiddenSongs = await queries.getHiddenSongs();
-          if (__DEV__) console.log('[STORE] Fetched hidden songs:', hiddenSongs.length);
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[STORE] Fetched hidden songs:', hiddenSongs.length);
           set({ hiddenSongs, isLoading: false });
         } catch (error) {
-          console.error('[STORE] Fetch hidden error:', error);
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[STORE] Fetch hidden error:', error);
           set({ 
             error: error instanceof Error ? error.message : 'Failed to fetch hidden songs', 
             isLoading: false 
@@ -104,12 +104,12 @@ export const useSongsStore = create<SongsState>()(
       addSong: async (song: Song) => {
         set({ isLoading: true, error: null });
         try {
-          if (__DEV__) console.log('[STORE] Adding song:', song.title);
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[STORE] Adding song:', song.title);
           await queries.insertSong(song);
           await get().fetchSongs();
           set({ isLoading: false });
         } catch (error) {
-          console.error('[STORE] Add error:', error);
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[STORE] Add error:', error);
           set({ 
             error: error instanceof Error ? error.message : 'Failed to add song', 
             isLoading: false 
@@ -207,7 +207,7 @@ export const useSongsStore = create<SongsState>()(
                 set(state => ({
                     songs: state.songs.map(s => s.id === song.id ? { ...s, lastPlayed: now } : s)
                 }));
-                queries.updatePlayStats(song.id).catch(console.error);
+                if (typeof __DEV__ !== 'undefined' && __DEV__) queries.updatePlayStats(song.id).catch(console.error);
                 useDailyStatsStore.getState().incrementDailyPlay(song.id);
             }, 5000); 
         } else {
@@ -228,7 +228,7 @@ export const useSongsStore = create<SongsState>()(
         try {
           return await queries.searchSongs(query);
         } catch (error) {
-          console.error('Search failed:', error);
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('Search failed:', error);
           return [];
         }
       },

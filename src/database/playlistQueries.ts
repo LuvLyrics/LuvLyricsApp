@@ -7,7 +7,7 @@ import { Playlist, Song } from '../types/song';
 import { getSongById } from './queries';
 
 const log = (msg: string, data?: any) => {
-  console.log(`[PLAYLIST_QUERIES] ${msg}`, data ?? '');
+  if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(`[PLAYLIST_QUERIES] ${msg}`, data ?? '');
 };
 
 /**
