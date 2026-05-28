@@ -1,28 +1,28 @@
 import React, { createContext, useContext, useEffect, useRef } from 'react';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { usePlayerStore } from '../store/playerStore';
+import { usePlayerStore, playerControls } from '../store/playerStore';
+import { usePositionStore } from '../store/positionStore';
 import { shouldPreservePlayingStateDuringSeek } from './playerStatusGuard';
+import { positionSV, durationSV, isSeeking } from '../playback/positionBus';
 
 const PlayerContext = createContext<any>(null);
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const player = useAudioPlayer();
-  const setControls = usePlayerStore(state => state.setControls);
   const lastSeekAtRef = useRef(0);
+  const lastZustandUpdateRef = useRef(0);
   const endHandledForSongIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (player) {
-        setControls({
-            play: () => setTimeout(() => player.play(), 0),
-            pause: () => setTimeout(() => player.pause(), 0),
-            seekTo: (pos: number) => {
-              lastSeekAtRef.current = Date.now();
-              setTimeout(() => player.seekTo(pos), 0);
-            }
-        });
+        playerControls.play = () => setTimeout(() => player.play(), 0);
+        playerControls.pause = () => setTimeout(() => player.pause(), 0);
+        playerControls.seekTo = (pos: number) => {
+          lastSeekAtRef.current = Date.now();
+          setTimeout(() => player.seekTo(pos), 0);
+        };
     }
-  }, [player, setControls]);
+  }, [player]);
 
   const currentSong = usePlayerStore(state => state.currentSong);
   const currentSongId = usePlayerStore(state => state.currentSongId);
@@ -80,8 +80,25 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const store = usePlayerStore.getState();
 
-      // Batch updates if possible, or only update if changed significantly
-      store.updateProgress(currentTime, duration);
+      // Write to shared values directly — no React re-render
+      if (!isSeeking.value) {
+        positionSV.value = currentTime;
+      }
+      durationSV.value = duration;
+
+      // Throttled Zustand update for non-animation consumers (max 2/sec)
+      const now = Date.now();
+      if (now - lastZustandUpdateRef.current >= 500) {
+        lastZustandUpdateRef.current = now;
+        const posStore = usePositionStore.getState();
+        // Guard: only write if values actually changed
+        if (
+          posStore.position !== currentTime ||
+          posStore.duration !== duration
+        ) {
+          posStore.updateProgress(currentTime, duration);
+        }
+      }
 
       const justSought = Date.now() - lastSeekAtRef.current < 1500;
       const activeSongId = store.currentSongId;
@@ -91,8 +108,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isLoaded &&
         !isBuffering &&
         !playing &&
-        duration > 0 &&
-        currentTime >= Math.max(0, duration - 0.35);
+        durationSV.value > 0 &&
+        positionSV.value >= Math.max(0, durationSV.value - 0.35);
       const shouldAdvance =
         !justSought &&
         (didJustFinish || isNearEndFallback) &&
@@ -108,15 +125,21 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       if (store.isPlaying !== playing) {
-        if (shouldPreservePlayingStateDuringSeek({
-          playing,
-          playbackState,
-          isBuffering,
-          isLoaded,
-        })) {
-            // Keep existing state (likely "playing") to avoid button flicker
+        if (
+          shouldPreservePlayingStateDuringSeek({
+            playing,
+            playbackState,
+            isBuffering,
+            isLoaded,
+          })
+        ) {
+          // Keep existing state (likely "playing") to avoid button flicker
         } else {
+          // Guard: only write if the value has actually changed to avoid
+          // triggering unnecessary Zustand subscriber re-renders.
+          if (store.isPlaying !== playing) {
             store.setIsPlaying(playing);
+          }
         }
       }
 

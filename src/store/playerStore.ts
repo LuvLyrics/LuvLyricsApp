@@ -2,6 +2,20 @@ import { create } from 'zustand';
 import * as queries from '../database/queries';
 import { Song } from '../types/song';
 
+// Injected by songsStore at init — breaks the circular require in nextInPlaylist
+let _getSongs: (() => Song[]) | null = null;
+export function registerSongsGetter(fn: () => Song[]): void {
+  _getSongs = fn;
+}
+
+// Module-level controls ref — written by PlayerContext at mount, read everywhere else.
+// Keeps imperative player commands out of Zustand state so they don't trigger re-renders.
+export const playerControls = {
+  play: () => { if (__DEV__) console.warn('[playerControls] Player not initialized'); },
+  pause: () => { if (__DEV__) console.warn('[playerControls] Player not initialized'); },
+  seekTo: (_pos: number) => { if (__DEV__) console.warn('[playerControls] Player not initialized'); },
+};
+
 interface PlayerState {
   currentSongId: string | null;
   currentSong: Song | null;
@@ -16,16 +30,9 @@ interface PlayerState {
   currentQueueIndex: number;
   
   // Playback State (for UI updates)
-  position: number;
-  duration: number;
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
   
-  // Controls exposed by PlayerContext
-  play: () => void;
-  pause: () => void;
-  seekTo: (position: number) => void;
-  setControls: (controls: { play: () => void; pause: () => void; seekTo: (pos: number) => void }) => void;
   
   loadSong: (songId: string) => Promise<void>;
   setInitialSong: (song: Song) => void;
@@ -34,8 +41,6 @@ interface PlayerState {
   toggleShowTransliteration: () => void;
   setMiniPlayerHidden: (hidden: boolean) => void;
   setMiniPlayerHiddenSource: (source: string, hidden: boolean) => void;
-  updateProgress: (position: number, duration: number) => void;
-  
   // Playlist queue actions
   setPlaylistQueue: (playlistId: string, songs: Song[], startIndex: number) => void;
   updateQueue: (songs: Song[]) => void;
@@ -60,21 +65,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentPlaylistId: null,
   currentQueueIndex: -1,
   
-  position: 0,
-  duration: 0,
   isPlaying: false,
   
-  // Default no-ops
   setIsPlaying: (playing: boolean) => set({ isPlaying: playing }),
-  play: () => console.warn('Player not initialized'),
-  pause: () => console.warn('Player not initialized'),
-  seekTo: () => console.warn('Player not initialized'),
-  
-  setControls: (controls) => set({ 
-      play: controls.play, 
-      pause: controls.pause, 
-      seekTo: controls.seekTo 
-  }),
   
   loadSong: async (songId: string) => {
     // 1. Optimistic Update: Get metadata + audioUri from Memory (Instant)
@@ -139,8 +132,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       };
   }),
 
-  updateProgress: (position, duration) => set({ position, duration }),
-
   // Silent Queue Update (for sorting/reordering)
   updateQueue: (newQueue: Song[]) => set((state) => {
       // Try to find current song in new queue to keep index correct
@@ -178,7 +169,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // Fetch full song details (lyrics) for the starting song
     if (startSongId) {
         get().loadSong(startSongId);
-        get().play(); // Execute Play
+        playerControls.play();
     }
   },
   
@@ -228,9 +219,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // Rebuild from songsStore so auto-next still works
     if (!state.playlistQueue || state.playlistQueue.length === 0) {
       if (state.currentPlaylistId === 'library' && state.currentSongId) {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { useSongsStore } = require('./songsStore') as { useSongsStore: typeof import('./songsStore').useSongsStore };
-        const allSongs: Song[] = useSongsStore.getState().songs;
+        const allSongs: Song[] = _getSongs ? _getSongs() : [];
         if (allSongs.length > 0) {
           const idx = allSongs.findIndex((s: Song) => s.id === state.currentSongId);
           set({ playlistQueue: allSongs, currentQueueIndex: idx !== -1 ? idx : 0 });
@@ -256,29 +245,29 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     
     // Trigger audio load
     get().loadSong(nextSong.id);
-    get().play(); // Execute Play
+    playerControls.play();
     if (__DEV__) {
       console.log(`[PLAYER] Next in playlist: ${nextSong.title}`);
     }
   },
-  
+
   previousInPlaylist: () => {
     const state = get();
     if (!state.playlistQueue || state.playlistQueue.length === 0) return;
-    
+
     const prevIndex = (state.currentQueueIndex - 1 + state.playlistQueue.length) % state.playlistQueue.length;
     const prevSong = state.playlistQueue[prevIndex];
-    
-    set({ 
+
+    set({
       currentQueueIndex: prevIndex,
       currentSong: prevSong,
       currentSongId: prevSong.id,
       isPlaying: true // FORCE PLAY
     });
-    
+
     // Trigger audio load
     get().loadSong(prevSong.id);
-    get().play(); // Execute Play
+    playerControls.play();
     if (__DEV__) {
       console.log(`[PLAYER] Previous in playlist: ${prevSong.title}`);
     }

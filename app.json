@@ -47,13 +47,15 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.ACCESS_WIFI_STATE",
-        "android.permission.CHANGE_WIFI_MULTICAST_STATE"
+        "android.permission.CHANGE_WIFI_MULTICAST_STATE",
+        "android.permission.NEARBY_WIFI_DEVICES"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "@sentry/react-native/expo",
       "expo-sqlite",
       "expo-audio",
       [
@@ -67,7 +69,8 @@
         {
           "photosPermission": "Allow LuvLyrics to access your photos so you can set custom playlist covers."
         }
-      ]
+      ],
+      "./plugins/withLuvLyricsLanDiscovery"
     ],
     "extra": {
       "eas": {

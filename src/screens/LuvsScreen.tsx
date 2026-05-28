@@ -206,8 +206,9 @@ const LuvsScreen: React.FC = () => {
         // Reset timer for new song
         viewStartTimeRef.current = Date.now();
         viewTrackingRef.current = newIndex;
+        setCurrentIndex(newIndex);
         // ALWAYS FORCE PLAY ON SWIPE
-        setIsPlaying(true); 
+        setIsPlaying(true);
         luvsBufferManager.updateActiveIndex(newIndex, feedSongs, true);
 
         if (newIndex >= feedSongs.length - 2) {
@@ -308,11 +309,11 @@ const LuvsScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           onScroll={scrollHandler}
           scrollEventThrottle={16}
-          windowSize={2}
-          maxToRenderPerBatch={1}
-          removeClippedSubviews={true}
-          initialNumToRender={1}
-          updateCellsBatchingPeriod={100}
+          windowSize={5}
+          maxToRenderPerBatch={2}
+          removeClippedSubviews={false}
+          initialNumToRender={2}
+          updateCellsBatchingPeriod={50}
           viewabilityConfig={viewabilityConfig}
           onViewableItemsChanged={handleViewableChange}
           getItemLayout={getItemLayout}

@@ -47,8 +47,8 @@ export const parseTimestampedLyrics = (rawText: string): LyricLine[] => {
   const lines = textToParse.split(/\r\n|\r|\n/).map((line) => line.trim()).filter(Boolean);
   const lyrics: LyricLine[] = [];
   
-  console.log(`[Parser] Raw text length: ${rawText.length}, Lines: ${lines.length}`);
-  if (lines.length > 0) {
+  if (__DEV__) console.log(`[Parser] Raw text length: ${rawText.length}, Lines: ${lines.length}`);
+  if (__DEV__ && lines.length > 0) {
       console.log(`[Parser] First line: "${lines[0]}"`);
   }
   
@@ -152,16 +152,17 @@ export const calculateDuration = (lyrics: LyricLine[]): number => {
  * @returns Index of the current lyric line
  */
 export const getCurrentLineIndex = (lyrics: LyricLine[], currentTime: number): number => {
+  'worklet';
   if (lyrics.length === 0) return -1;
-  
+
   // Find the last line whose timestamp is <= currentTime
   for (let i = lyrics.length - 1; i >= 0; i--) {
     if (lyrics[i].timestamp <= currentTime) {
       return i;
     }
   }
-  
-  return 0; // Default to first line
+
+  return 0;
 };
 
 /**

@@ -1,5 +1,12 @@
+import * as Sentry from '@sentry/react-native';
 import { registerRootComponent } from 'expo';
 import React from 'react';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enabled: !__DEV__,
+  tracesSampleRate: 0.2,
+});
 
 import App from './App';
 

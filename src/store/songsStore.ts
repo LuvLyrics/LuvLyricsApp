@@ -4,21 +4,19 @@
  */
 
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Song, SortOption } from '../types/song';
 import * as queries from '../database/queries';
 import { useDailyStatsStore } from './dailyStatsStore';
+import { registerSongsGetter } from './playerStore';
 
 interface SongsState {
   // State
   songs: Song[];
   hiddenSongs: Song[];
-  currentSong: Song | null;
   isLoading: boolean;
   error: string | null;
   sortBy: SortOption;
-  
+
   // Actions
   fetchSongs: () => Promise<void>;
   fetchHiddenSongs: () => Promise<void>;
@@ -32,24 +30,15 @@ interface SongsState {
   searchSongs: (query: string) => Promise<Song[]>;
   toggleLike: (songId: string) => Promise<void>;
   clearError: () => void;
-  hydrate: () => Promise<void>; // Manual rehydration if needed
 }
 
-export const useSongsStore = create<SongsState>()(
-  persist(
-    (set, get) => ({
+export const useSongsStore = create<SongsState>()((set, get) => ({
       // Initial state
       songs: [],
       hiddenSongs: [],
-      currentSong: null,
       isLoading: false,
       error: null,
       sortBy: 'recent',
-      
-      hydrate: async () => {
-         // Optional: Trigger a background refresh after rehydration
-         await get().fetchSongs();
-      },
 
       // Fetch all songs
       fetchSongs: async () => {
@@ -89,11 +78,7 @@ export const useSongsStore = create<SongsState>()(
       // Get single song with lyrics
       getSong: async (id: string) => {
         try {
-          const song = await queries.getSongById(id);
-          if (song) {
-            set({ currentSong: song });
-          }
-          return song;
+          return await queries.getSongById(id);
         } catch (error) {
           set({ error: error instanceof Error ? error.message : 'Failed to get song' });
           return null;
@@ -125,7 +110,6 @@ export const useSongsStore = create<SongsState>()(
           
           set(state => ({
               songs: state.songs.map(s => s.id === song.id ? song : s),
-              currentSong: state.currentSong?.id === song.id ? song : state.currentSong,
               isLoading: false
           }));
 
@@ -151,7 +135,6 @@ export const useSongsStore = create<SongsState>()(
           
           set(state => ({
              songs: state.songs.filter(s => s.id !== id),
-             currentSong: state.currentSong?.id === id ? null : state.currentSong,
              isLoading: false
           }));
 
@@ -196,23 +179,17 @@ export const useSongsStore = create<SongsState>()(
         }
       },
 
-      // Set current playing song
+      // Track play stats — no longer stores currentSong state (use playerStore for that)
       setCurrentSong: (song: Song | null) => {
-        if (song) {
-            const now = new Date().toISOString();
-            set({ currentSong: song });
-
-            // Deferred stats update
-            setTimeout(() => {
-                set(state => ({
-                    songs: state.songs.map(s => s.id === song.id ? { ...s, lastPlayed: now } : s)
-                }));
-                queries.updatePlayStats(song.id).catch(console.error);
-                useDailyStatsStore.getState().incrementDailyPlay(song.id);
-            }, 5000); 
-        } else {
-            set({ currentSong: null });
-        }
+        if (!song) return;
+        const now = new Date().toISOString();
+        setTimeout(() => {
+          set(state => ({
+            songs: state.songs.map(s => s.id === song.id ? { ...s, lastPlayed: now } : s),
+          }));
+          queries.updatePlayStats(song.id).catch(console.error);
+          useDailyStatsStore.getState().incrementDailyPlay(song.id);
+        }, 5000);
       },
 
       // Set sort option
@@ -246,7 +223,6 @@ export const useSongsStore = create<SongsState>()(
                 const updatedSong = { ...song, isLiked: !song.isLiked };
                 return {
                     songs: state.songs.map(s => s.id === songId ? updatedSong : s),
-                    currentSong: state.currentSong?.id === songId ? updatedSong : state.currentSong
                 };
              });
 
@@ -260,16 +236,8 @@ export const useSongsStore = create<SongsState>()(
          }
       },
       
-      clearError: () => set({ error: null })
-    }),
-    {
-      name: 'songs-storage',
-      storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ 
-        songs: state.songs, 
-        hiddenSongs: state.hiddenSongs,
-        sortBy: state.sortBy 
-      }),
-    }
-  )
-);
+      clearError: () => set({ error: null }),
+}));
+
+// Give playerStore a sync path to songs — breaks the circular require in nextInPlaylist
+registerSongsGetter(() => useSongsStore.getState().songs);

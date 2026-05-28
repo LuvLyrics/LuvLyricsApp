@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import { UnifiedSong } from '../types/song';
 import { downloadManager } from '../services/DownloadManager';
 
+// Per-item throttle for progress-only store writes — max 4/sec (250ms)
+const PROGRESS_THROTTLE_MS = 250;
+const progressThrottleMap = new Map<string, number>();
+
 export interface QueueItem {
   id: string; // song ID
   song: UnifiedSong;
@@ -54,12 +58,21 @@ export const useDownloadQueueStore = create<DownloadQueueStore>((set) => ({
   },
 
   updateItem: (id: string, updates: Partial<QueueItem>) => {
+    // Throttle progress-only writes to max 4/sec to prevent flooding the store
+    const keys = Object.keys(updates);
+    if (keys.length === 1 && keys[0] === 'progress') {
+      const now = Date.now();
+      const last = progressThrottleMap.get(id) ?? 0;
+      if (now - last < PROGRESS_THROTTLE_MS) return;
+      progressThrottleMap.set(id, now);
+    }
     set(state => ({
       queue: state.queue.map(item => item.id === id ? { ...item, ...updates } : item)
     }));
   },
 
   removeItem: (id: string) => {
+    progressThrottleMap.delete(id);
     set(state => ({
       queue: state.queue.filter(item => item.id !== id)
     }));

@@ -3,8 +3,10 @@ import { View, Text, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useDownloadQueueStore } from '../store/downloadQueueStore';
 import { useSongsStore } from '../store/songsStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { lyricaService } from '../services/LyricaService';
 import { useLyricsScanQueueStore } from '../store/lyricsScanQueueStore';
+import { processLyricsScanQueue } from '../services/lyricsScanWorker';
 import { usePlaylistStore } from '../store/playlistStore';
 import { useKeepAwake } from 'expo-keep-awake';
 import * as playlistQueries from '../database/playlistQueries';
@@ -22,7 +24,17 @@ export const BackgroundDownloader = () => {
     const fetchSongs = useSongsStore(state => state.fetchSongs);
     const activeDownloads = useRef<Set<string>>(new Set());
     const MAX_CONCURRENT = 2; // 2-at-a-time is a good speed/reliability balance
-    
+
+    // Trigger lyrics scan worker whenever new pending scan jobs appear
+    const scanQueue = useLyricsScanQueueStore(state => state.queue);
+    const scanProcessing = useLyricsScanQueueStore(state => state.processing);
+    useEffect(() => {
+        const hasPending = Object.values(scanQueue).some(j => j.status === 'pending');
+        if (hasPending && !scanProcessing) {
+            processLyricsScanQueue();
+        }
+    }, [scanQueue, scanProcessing]);
+
     // Prevent screen from sleeping while downloading
     const hasActiveDownloads = queue.some(item => item.status === 'downloading' || item.status === 'pending');
     
@@ -113,13 +125,14 @@ export const BackgroundDownloader = () => {
                     return null;
                 });
 
-                const newSong = await downloadManager.finalizeDownload(stagingPayload, (progress) => {
-                    // Map 0-100% download progress to 0-80% total progress
-                    const scaledProgress = progress * 0.8;
-                    if (isActive) {
-                        updateItem(item.id, { progress: scaledProgress });
-                    }
-                });
+                const newSong = await downloadManager.finalizeDownload(
+                    stagingPayload,
+                    (progress) => {
+                        const scaledProgress = progress * 0.8;
+                        if (isActive) updateItem(item.id, { progress: scaledProgress });
+                    },
+                    useSettingsStore.getState().downloadDirectoryUri
+                );
 
                 if (__DEV__) console.log(`[BackgroundDownloader] Audio download completed. Checking parallel lyrics search results...`);
 

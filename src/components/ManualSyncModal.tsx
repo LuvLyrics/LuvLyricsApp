@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
-import { usePlayerStore } from '../store/playerStore';
+import { usePlayerStore, playerControls } from '../store/playerStore';
+import { usePositionStore } from '../store/positionStore';
 import { usePlayer } from '../contexts/PlayerContext'; // Import context hook
 import Slider from '@react-native-community/slider';
 import { formatTime } from '../utils/formatters';
@@ -44,11 +45,9 @@ export const ManualSyncModal: React.FC<ManualSyncModalProps> = ({
   duration = 0
 }) => {
   const currentSong = usePlayerStore(state => state.currentSong);
-  const play = usePlayerStore(state => state.play);
-  const pause = usePlayerStore(state => state.pause);
-  const seekTo = usePlayerStore(state => state.seekTo);
-  const storePosition = usePlayerStore(state => state.position);
-  const storeDuration = usePlayerStore(state => state.duration);
+  const { play, pause, seekTo } = playerControls;
+  const storePosition = usePositionStore(state => state.position);
+  const storeDuration = usePositionStore(state => state.duration);
   const storePlaying = usePlayerStore(state => state.isPlaying);
   
   // We use the usePlayer context hook which returns the expo-audio player instance
