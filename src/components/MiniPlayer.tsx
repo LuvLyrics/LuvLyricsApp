@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, Image, Dimensions, Platform, UIManager, FlatList } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { View, Text, Pressable, StyleSheet, Image, Dimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -24,7 +24,7 @@ import Animated, {
 import { positionSV, durationSV, isSeeking } from '../playback/positionBus';
 
 import { usePlayer } from '../contexts/PlayerContext';
-import { usePlayerStore } from '../store/playerStore';
+import { usePlayerStore, playerControls } from '../store/playerStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { getGradientColors } from '../constants/gradients';
 import { RotatingVinyl } from './VinylRecord';
@@ -34,6 +34,93 @@ const { width } = Dimensions.get('window');
 
 // Create Animated Pressable
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+// ─── Memoized sub-panels ──────────────────────────────────────────────────────
+// Defined outside MiniPlayer so React never creates a new component type on re-render.
+
+interface TrackInfoProps {
+  title: string;
+  artist: string;
+  coverImageUri?: string;
+  isIsland: boolean;
+  onPress: () => void;
+}
+const TrackInfo = memo(({ title, artist, coverImageUri, isIsland, onPress }: TrackInfoProps) => (
+  <>
+    <Pressable onPress={(e) => { e.stopPropagation(); onPress(); }}>
+      {coverImageUri ? (
+        <Animated.Image
+          source={{ uri: coverImageUri }}
+          style={[styles.coverThumbnail, isIsland && styles.islandCover]}
+        />
+      ) : (
+        <View style={[styles.placeholderThumbnail, isIsland && styles.islandCover]}>
+          <Ionicons name="musical-notes" size={20} color="#666" />
+        </View>
+      )}
+    </Pressable>
+    <View style={styles.info}>
+      <Text style={styles.title} numberOfLines={1}>{title}</Text>
+      <Text style={[styles.artist, isIsland && { display: 'none' }]} numberOfLines={1}>
+        {artist || 'Unknown Artist'}
+      </Text>
+    </View>
+  </>
+));
+TrackInfo.displayName = 'TrackInfo';
+
+interface PlaybackControlsProps {
+  playing: boolean;
+  onToggle: (e?: any) => void;
+  onSkipBack: (e?: any) => void;
+  onSkipForward: (e?: any) => void;
+  animatedButtonStyle: any;
+  variant: 'bar' | 'island-collapsed' | 'island-expanded';
+}
+const PlaybackControls = memo(({
+  playing, onToggle, onSkipBack, onSkipForward, animatedButtonStyle, variant,
+}: PlaybackControlsProps) => {
+  if (variant === 'island-collapsed') {
+    return (
+      <View style={[styles.islandControls, { zIndex: 10 }]}>
+        <Pressable onPress={onToggle} hitSlop={20}>
+          <Animated.View style={animatedButtonStyle}>
+            <Ionicons name={playing ? 'pause' : 'play'} size={24} color="#fff" />
+          </Animated.View>
+        </Pressable>
+      </View>
+    );
+  }
+  const isBar = variant === 'bar';
+  return (
+    <View style={isBar ? { flexDirection: 'row', alignItems: 'center' } : styles.expandedControls}>
+      <Pressable
+        onPress={(e) => { if (isBar) e.stopPropagation(); onSkipBack(isBar ? e : undefined); }}
+        hitSlop={isBar ? undefined : 10}
+        style={isBar ? styles.controlButton : undefined}
+      >
+        <Ionicons name="play-skip-back" size={24} color="#fff" />
+      </Pressable>
+      <Pressable
+        onPress={(e) => { if (isBar) e.stopPropagation(); onToggle(isBar ? e : undefined); }}
+        hitSlop={20}
+        style={isBar ? [styles.playButton, { marginHorizontal: 12 }] : undefined}
+      >
+        <Animated.View style={animatedButtonStyle}>
+          <Ionicons name={playing ? 'pause' : 'play'} size={32} color="#fff" />
+        </Animated.View>
+      </Pressable>
+      <Pressable
+        onPress={(e) => { if (isBar) e.stopPropagation(); onSkipForward(isBar ? e : undefined); }}
+        hitSlop={isBar ? undefined : 10}
+        style={isBar ? styles.controlButton : undefined}
+      >
+        <Ionicons name="play-skip-forward" size={24} color="#fff" />
+      </Pressable>
+    </View>
+  );
+});
+PlaybackControls.displayName = 'PlaybackControls';
 
 // UIManager.setLayoutAnimationEnabledExperimental removed to avoid New Architecture warning
 
@@ -69,7 +156,7 @@ export const MiniPlayer: React.FC = () => {
     setOptimisticPlaying(storePlaying);
   }, [storePlaying]);
 
-  const togglePlay = (e?: any) => {
+  const togglePlay = useCallback((e?: any) => {
       e?.stopPropagation();
       if (!player) return;
 
@@ -91,7 +178,7 @@ export const MiniPlayer: React.FC = () => {
           setStorePlaying(false);
           player.pause();
       }
-  };
+  }, [optimisticPlaying, player, setStorePlaying, playButtonScale]);
 
   
   const [expanded, setExpanded] = useState(false);
@@ -317,18 +404,16 @@ export const MiniPlayer: React.FC = () => {
 
 
   
-  const skipForward = (e?: any) => {
+  const skipForward = useCallback((e?: any) => {
     e?.stopPropagation();
-    // usePlayerStore.getState().nextInPlaylist() handles the logic
     usePlayerStore.getState().nextInPlaylist();
-  };
-  
-  const skipBackward = (e?: any) => {
+  }, []);
+
+  const skipBackward = useCallback((e?: any) => {
     e?.stopPropagation();
-    // Spotify Rule: Restart if > 3s, else Previous Track
     if (positionSV.value > 3 && player) {
         isSeeking.value = true;
-        positionSV.value = 0; // Optimistic reset
+        positionSV.value = 0;
         player.seekTo(0);
 
         if (seekLockTimeout.current) clearTimeout(seekLockTimeout.current);
@@ -338,7 +423,7 @@ export const MiniPlayer: React.FC = () => {
     } else {
         usePlayerStore.getState().previousInPlaylist();
     }
-  };
+  }, [player]);
 
   const handleSeekPress = async (e: any) => {
       e.stopPropagation();
@@ -351,121 +436,149 @@ export const MiniPlayer: React.FC = () => {
       if (wasPlaying) player.play();
   };
 
+  // -------------------------------------------------------------------------
+  // Capture the JS-state flags we need inside the worklet as shared values.
+  // Reading React state inside a worklet closure is unsafe — the closure
+  // captures a stale value. Shared values are always fresh on the UI thread.
+  // -------------------------------------------------------------------------
+  const expandedSV = useSharedValue(false);
+  const lyricExpandedSV = useSharedValue(false);
+  const fullLyricExpandedSV = useSharedValue(false);
+  const classicFullExpandedSV = useSharedValue(false);
+  const isIslandSV = useSharedValue(isIsland);
+  const hasLyricsSV = useSharedValue(false);
+
+  // Keep shared flags in sync with React state (cheap writes, no re-render).
+  useEffect(() => { expandedSV.value = expanded; }, [expanded, expandedSV]);
+  useEffect(() => { lyricExpandedSV.value = lyricExpanded; }, [lyricExpanded, lyricExpandedSV]);
+  useEffect(() => { fullLyricExpandedSV.value = fullLyricExpanded; }, [fullLyricExpanded, fullLyricExpandedSV]);
+  useEffect(() => { classicFullExpandedSV.value = classicFullExpanded; }, [classicFullExpanded, classicFullExpandedSV]);
+  useEffect(() => { isIslandSV.value = isIsland; }, [isIsland, isIslandSV]);
+  useEffect(() => {
+    hasLyricsSV.value = !!(currentSong?.lyrics && currentSong.lyrics.length > 0);
+  }, [currentSong?.lyrics, hasLyricsSV]);
+
   const panGesture = Gesture.Pan()
     .activeOffsetY([-5, 5])
     .activeOffsetX([-80, 80])
     .simultaneousWithExternalGesture()
-    .onUpdate((event: any) => {
-      // Horizontal swipe detection (classic full mode) — don't animate anything, just let it happen
-      const isHorizontal = Math.abs(event.translationX) > Math.abs(event.translationY);
-      if (!isIsland && expanded && classicFullExpanded && isHorizontal) {
-        return; // Skip vertical animation updates during horizontal swipe
+    .onUpdate((event) => {
+      'worklet';
+      // Horizontal swipe detection (classic full mode)
+      const isHoriz =
+        Math.abs(event.translationX) > Math.abs(event.translationY);
+      if (
+        !isIslandSV.value &&
+        expandedSV.value &&
+        classicFullExpandedSV.value &&
+        isHoriz
+      ) {
+        return; // Skip vertical updates during horizontal swipe
       }
 
-      if (!isIsland && expanded) {
+      if (!isIslandSV.value && expandedSV.value) {
         // Classic Mode: two-stage expansion (half → full)
-        if (!classicFullExpanded) {
+        if (!classicFullExpandedSV.value) {
           if (event.translationY < 0) {
-            // Swiping up from half → preview full
-            classicFullProgress.value = Math.min(Math.abs(event.translationY) / 200, 1);
+            classicFullProgress.value = Math.min(
+              Math.abs(event.translationY) / 200,
+              1,
+            );
           }
         } else {
           if (event.translationY > 0) {
-            // Swiping down from full → preview half
-            classicFullProgress.value = 1 - Math.min(event.translationY / 200, 1);
+            classicFullProgress.value =
+              1 - Math.min(event.translationY / 200, 1);
           }
         }
-      } else if (expanded) {
-        if (!lyricExpanded && !fullLyricExpanded) {
+      } else if (expandedSV.value) {
+        if (!lyricExpandedSV.value && !fullLyricExpandedSV.value) {
           if (event.translationY > 0) {
-            lyricExpansionProgress.value = Math.min(event.translationY / 200, 1);
+            lyricExpansionProgress.value = Math.min(
+              event.translationY / 200,
+              1,
+            );
           }
-        } else if (lyricExpanded && !fullLyricExpanded) {
-           const hasLyrics = currentSong?.lyrics && currentSong.lyrics.length > 0;
-           if (event.translationY > 0) {
-             if (hasLyrics) {
-                fullExpansionProgress.value = Math.min(event.translationY / 200, 1);
-             }
-           } else {
-             lyricExpansionProgress.value = 1 - Math.min(Math.abs(event.translationY) / 200, 1);
-           }
-        } else if (fullLyricExpanded) {
+        } else if (lyricExpandedSV.value && !fullLyricExpandedSV.value) {
+          if (event.translationY > 0) {
+            if (hasLyricsSV.value) {
+              fullExpansionProgress.value = Math.min(
+                event.translationY / 200,
+                1,
+              );
+            }
+          } else {
+            lyricExpansionProgress.value =
+              1 - Math.min(Math.abs(event.translationY) / 200, 1);
+          }
+        } else if (fullLyricExpandedSV.value) {
           if (event.translationY < 0) {
-            fullExpansionProgress.value = 1 - Math.min(Math.abs(event.translationY) / 200, 1);
+            fullExpansionProgress.value =
+              1 - Math.min(Math.abs(event.translationY) / 200, 1);
           }
         }
       }
     })
-    .onEnd((event: any) => {
-      // Check horizontal swipe FIRST (classic full mode)
-      const isHorizontal = Math.abs(event.translationX) > Math.abs(event.translationY);
-      if (!isIsland && expanded && classicFullExpanded && isHorizontal) {
-        const velocityX = event.velocityX;
-        const translationX = event.translationX;
-
-        if (translationX < -60 || velocityX < -600) {
-          // Swipe left → next song
+    .onEnd((event) => {
+      'worklet';
+      const isHoriz =
+        Math.abs(event.translationX) > Math.abs(event.translationY);
+      if (
+        !isIslandSV.value &&
+        expandedSV.value &&
+        classicFullExpandedSV.value &&
+        isHoriz
+      ) {
+        if (event.translationX < -60 || event.velocityX < -600) {
           runOnJS(skipForward)();
           return;
-        } else if (translationX > 60 || velocityX > 600) {
-          // Swipe right → previous song
+        } else if (event.translationX > 60 || event.velocityX > 600) {
           runOnJS(skipBackward)();
           return;
         }
       }
 
-      if (!isIsland && expanded) {
-        const velocity = event.velocityY;
-        const translation = event.translationY;
+      if (!isIslandSV.value && expandedSV.value) {
+        const vel = event.velocityY;
+        const trans = event.translationY;
 
-        if (!classicFullExpanded) {
-          // Half-opened state
-          if (translation < -50 || velocity < -500) {
-            // Swipe up → go full
+        if (!classicFullExpandedSV.value) {
+          if (trans < -50 || vel < -500) {
             classicFullProgress.value = withSpring(1);
             runOnJS(setClassicFullExpanded)(true);
-          } else if (translation > 50 || velocity > 500) {
-            // Swipe down → close completely
+          } else if (trans > 50 || vel > 500) {
             expansionProgress.value = withSpring(0);
             classicFullProgress.value = withSpring(0);
             runOnJS(setExpanded)(false);
             runOnJS(setClassicFullExpanded)(false);
           } else {
-            // Snap back to half
             expansionProgress.value = withSpring(1);
             classicFullProgress.value = withSpring(0);
           }
         } else {
-          // Fully expanded state
-          if (translation > 50 || velocity > 500) {
-            // Swipe down → go back to half
+          if (trans > 50 || vel > 500) {
             classicFullProgress.value = withSpring(0);
             runOnJS(setClassicFullExpanded)(false);
-          } else if (translation < -50 || velocity < -500) {
-            // Swipe up more → snap back to full (already full)
-            classicFullProgress.value = withSpring(1);
           } else {
-            // Snap back to full
             classicFullProgress.value = withSpring(1);
           }
         }
-      } else if (expanded) {
-        const velocity = event.velocityY;
-        const translation = event.translationY;
+      } else if (expandedSV.value) {
+        const vel = event.velocityY;
+        const trans = event.translationY;
 
-        if (!lyricExpanded && !fullLyricExpanded) {
-          if (translation > 50 || velocity > 500) {
+        if (!lyricExpandedSV.value && !fullLyricExpandedSV.value) {
+          if (trans > 50 || vel > 500) {
             lyricExpansionProgress.value = withSpring(1);
             runOnJS(setLyricExpanded)(true);
           } else {
             lyricExpansionProgress.value = withSpring(0);
           }
-        } else if (lyricExpanded && !fullLyricExpanded) {
-          const hasLyrics = currentSong?.lyrics && currentSong.lyrics.length > 0;
-          if ((translation > 50 || velocity > 500) && hasLyrics) {
+        } else if (lyricExpandedSV.value && !fullLyricExpandedSV.value) {
+          if ((trans > 50 || vel > 500) && hasLyricsSV.value) {
             fullExpansionProgress.value = withSpring(1);
             runOnJS(setFullLyricExpanded)(true);
-          } else if (translation < -50 || velocity < -500) {
+          } else if (trans < -50 || vel < -500) {
             lyricExpansionProgress.value = withSpring(0);
             runOnJS(setLyricExpanded)(false);
             runOnJS(setFullLyricExpanded)(false);
@@ -473,8 +586,8 @@ export const MiniPlayer: React.FC = () => {
             lyricExpansionProgress.value = withSpring(1);
             fullExpansionProgress.value = withSpring(0);
           }
-        } else if (fullLyricExpanded) {
-          if (translation < -50 || velocity < -500) {
+        } else if (fullLyricExpandedSV.value) {
+          if (trans < -50 || vel < -500) {
             fullExpansionProgress.value = withSpring(0);
             runOnJS(setFullLyricExpanded)(false);
           } else {
@@ -505,7 +618,7 @@ export const MiniPlayer: React.FC = () => {
     setExpanded(true);
   }, [expanded]);
 
-  const openNowPlaying = () => {
+  const openNowPlaying = useCallback(() => {
     if (currentSong) {
       setMiniPlayerHidden(true);
       (navigation as any).navigate('NowPlaying', { songId: currentSong.id });
@@ -518,7 +631,7 @@ export const MiniPlayer: React.FC = () => {
       setFullLyricExpanded(false);
       setClassicFullExpanded(false);
     }
-  };
+  }, [currentSong, setMiniPlayerHidden, navigation]);
 
   const handleLyricPress = useCallback((timestamp: number) => {
       if (!fullLyricExpanded) {
@@ -528,7 +641,7 @@ export const MiniPlayer: React.FC = () => {
           return; // Do NOT seek in half mode
       } 
       // Only seek in Full Screen mode
-      usePlayerStore.getState().seekTo(timestamp);
+      playerControls.seekTo(timestamp);
   }, [fullLyricExpanded, fullExpansionProgress]);
 
   const handleIslandSeek = useCallback(async (time: number) => {
@@ -664,19 +777,14 @@ export const MiniPlayer: React.FC = () => {
                         </View>
 
                         {/* Controls Grouped */}
-                        <View style={styles.expandedControls}>
-                             <Pressable onPress={skipBackward} hitSlop={10}>
-                                 <Ionicons name="play-skip-back" size={24} color="#fff" />
-                             </Pressable>
-                             <Pressable onPress={togglePlay} hitSlop={20}>
-                                 <Animated.View style={animatedButtonStyle}>
-                                     <Ionicons name={optimisticPlaying ? 'pause' : 'play'} size={32} color="#fff" />
-                                 </Animated.View>
-                             </Pressable>
-                             <Pressable onPress={skipForward} hitSlop={10}>
-                                 <Ionicons name="play-skip-forward" size={24} color="#fff" />
-                             </Pressable>
-                        </View>
+                        <PlaybackControls
+                            variant="island-expanded"
+                            playing={optimisticPlaying}
+                            onToggle={togglePlay}
+                            onSkipBack={skipBackward}
+                            onSkipForward={skipForward}
+                            animatedButtonStyle={animatedButtonStyle}
+                        />
 
                         
                         {/* Drag Handle Overlay for Stage 1/2 */}
@@ -758,60 +866,34 @@ export const MiniPlayer: React.FC = () => {
                     paddingHorizontal: 16,
                     width: '100%'
                 }}>
-                    {/* Cover Art - PRESSABLE -> Opens Full Player */}
-                    <Pressable onPress={(e) => { e.stopPropagation(); openNowPlaying(); }}>
-                        {currentSong.coverImageUri ? (
-                        <Animated.Image 
-                            source={{ uri: currentSong.coverImageUri }} 
-                            style={[styles.coverThumbnail, isIsland && styles.islandCover]}
-                        />
-                        ) : (
-                        <View style={[styles.placeholderThumbnail, isIsland && styles.islandCover]}>
-                            <Ionicons name="musical-notes" size={20} color="#666" />
-                        </View>
-                        )}
-                    </Pressable>
-                    
-                    {/* Song Info */}
-                    <View style={styles.info}>
-                    <Text style={styles.title} numberOfLines={1}>
-                        {currentSong.title}
-                    </Text>
-                    <Text style={[styles.artist, isIsland && { display: 'none' }]} numberOfLines={1}>
-                        {currentSong.artist || 'Unknown Artist'}
-                    </Text>
-                    </View>
+                    <TrackInfo
+                        title={currentSong.title}
+                        artist={currentSong.artist || ''}
+                        coverImageUri={currentSong.coverImageUri}
+                        isIsland={isIsland}
+                        onPress={openNowPlaying}
+                    />
                     
                     {/* Controls */}
                     {isIsland ? (
-                    <View style={[styles.islandControls, { zIndex: 10 }]}>
-                        <Pressable onPress={togglePlay} hitSlop={20}>
-                            <Animated.View style={animatedButtonStyle}>
-                                <Ionicons 
-                                name={optimisticPlaying ? 'pause' : 'play'} 
-                                size={24} 
-                                color="#fff" 
-                                />
-                            </Animated.View>
-                        </Pressable>
-                    </View>
+                    <PlaybackControls
+                        variant="island-collapsed"
+                        playing={optimisticPlaying}
+                        onToggle={togglePlay}
+                        onSkipBack={skipBackward}
+                        onSkipForward={skipForward}
+                        animatedButtonStyle={animatedButtonStyle}
+                    />
                     ) : (
                     /* Bar Mode Controls */
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Pressable onPress={(e) => { e.stopPropagation(); skipBackward(e); }} style={styles.controlButton}>
-                        <Ionicons name="play-skip-back" size={24} color="#fff" />
-                        </Pressable>
-                        
-                        <Pressable onPress={(e) => { e.stopPropagation(); togglePlay(e); }} style={[styles.playButton, { marginHorizontal: 12 }]} hitSlop={20}>
-                        <Animated.View style={animatedButtonStyle}>
-                            <Ionicons name={optimisticPlaying ? 'pause' : 'play'} size={32} color="#fff" />
-                        </Animated.View>
-                        </Pressable>
-                        
-                        <Pressable onPress={(e) => { e.stopPropagation(); skipForward(e); }} style={styles.controlButton}>
-                        <Ionicons name="play-skip-forward" size={24} color="#fff" />
-                        </Pressable>
-                    </View>
+                    <PlaybackControls
+                        variant="bar"
+                        playing={optimisticPlaying}
+                        onToggle={togglePlay}
+                        onSkipBack={skipBackward}
+                        onSkipForward={skipForward}
+                        animatedButtonStyle={animatedButtonStyle}
+                    />
                     )}
                 </View>
 

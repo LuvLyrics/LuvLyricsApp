@@ -43,7 +43,8 @@ import { Colors } from '../constants/colors';
 import { Song } from '../types/song';
 import { getGradientForSong } from '../constants/gradients';
 import { usePlayer } from '../contexts/PlayerContext';
-import { usePlayerStore } from '../store/playerStore';
+import { usePlayerStore, playerControls } from '../store/playerStore';
+import { usePositionStore } from '../store/positionStore';
 import { usePlaylistStore } from '../store/playlistStore'; // Assuming this store exists or is used
 import * as playlistQueries from '../database/playlistQueries';
 import { PlaylistItem } from '../components/PlaylistItem';
@@ -87,13 +88,12 @@ export const PlaylistDetailScreen: React.FC = () => {
   const currentPlaylistId = usePlayerStore(state => state.currentPlaylistId);
   const currentSong = usePlayerStore(state => state.currentSong);
   const setPlaylistQueue = usePlayerStore(state => state.setPlaylistQueue);
-  const play = usePlayerStore(state => state.play);
-  const pause = usePlayerStore(state => state.pause);
+  const { play, pause } = playerControls;
   const isPlaying = usePlayerStore(state => state.isPlaying);
   const nextInPlaylist = usePlayerStore(state => state.nextInPlaylist);
   const previousInPlaylist = usePlayerStore(state => state.previousInPlaylist);
-  const position = usePlayerStore(state => state.position);
-  const duration = usePlayerStore(state => state.duration);
+  const position = usePositionStore(state => state.position);
+  const duration = usePositionStore(state => state.duration);
   
   const activeIsPlaying = currentPlaylistId === playlistId;
 

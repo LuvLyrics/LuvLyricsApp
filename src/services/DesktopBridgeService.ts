@@ -25,7 +25,8 @@ import { Buffer } from 'buffer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Zeroconf, { ImplType } from 'react-native-zeroconf';
 import nacl from 'tweetnacl';
-import { usePlayerStore } from '../store/playerStore';
+import { usePlayerStore, playerControls } from '../store/playerStore';
+import { usePositionStore } from '../store/positionStore';
 import { useDownloadQueueStore } from '../store/downloadQueueStore';
 import { useDesktopBridgeSettingsStore } from '../store/desktopBridgeSettingsStore';
 import { trustedPairingService } from './TrustedPairingService';
@@ -1185,12 +1186,12 @@ class DesktopBridgeService {
       switch (action) {
         case 'PLAY':
           this.desktopWasPlaying = true;
-          if (!playerStore.isPlaying) playerStore.play();
+          if (!playerStore.isPlaying) playerControls.play();
           break;
 
         case 'PAUSE':
           this.desktopWasPlaying = false;
-          if (playerStore.isPlaying) playerStore.pause();
+          if (playerStore.isPlaying) playerControls.pause();
           break;
 
         case 'NEXT':
@@ -1205,8 +1206,8 @@ class DesktopBridgeService {
           if (typeof payload.position === 'number') {
             this.latestDesktopPosition = payload.position;
             const epsilon = 0.15;
-            if (Math.abs((playerStore.position ?? 0) - payload.position) > epsilon) {
-              playerStore.seekTo(payload.position);
+            if (Math.abs((usePositionStore.getState().position ?? 0) - payload.position) > epsilon) {
+              playerControls.seekTo(payload.position);
             }
           }
           break;
@@ -1253,7 +1254,7 @@ class DesktopBridgeService {
         id: commandId,
         type: 'ack',
         ok,
-        appliedPositionMs: Math.max(0, Math.floor((playerStore.position ?? 0) * 1000)),
+        appliedPositionMs: Math.max(0, Math.floor((usePositionStore.getState().position ?? 0) * 1000)),
         stateVersion: this.stateVersion,
       })
     );

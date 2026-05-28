@@ -5,7 +5,6 @@
 
 import { lyricaService, LyricaResult } from './LyricaService';
 import { SmartLyricMatcher } from './SmartLyricMatcher';
-import { MultiSourceLyricsService } from './MultiSourceLyricsService';
 
 export interface SearchResult {
   id: string;
@@ -34,13 +33,10 @@ export const LyricsRepository = {
     onProgress?.('Searching global databases...');
     
     try {
-      const multiResults = await MultiSourceLyricsService.fetchLyricsParallel(
-        targetMetadata.title,
-        targetMetadata.artist,
-        targetMetadata.duration
-      );
-      
-      if (!multiResults || multiResults.length === 0) {
+      const raw = await lyricaService.fetchLyrics(targetMetadata.title, targetMetadata.artist, false, targetMetadata.duration);
+      const multiResults: LyricaResult[] = raw ? [raw] : [];
+
+      if (multiResults.length === 0) {
         onProgress?.('No lyrics found');
         return [];
       }

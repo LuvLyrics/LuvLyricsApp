@@ -1,19 +1,6 @@
-jest.mock('../services/LyricaService', () => ({
-  lyricaService: {
-    fetchLyrics: jest.fn(),
-  },
-}));
-
-import { lyricaService } from '../services/LyricaService';
-import { getLyricsFriendlyError, MultiSourceLyricsService } from './MultiSourceLyricsService';
-
-const mockFetchLyrics = jest.mocked(lyricaService.fetchLyrics);
+import { getLyricsFriendlyError } from './LyricaService';
 
 describe('getLyricsFriendlyError', () => {
-  beforeEach(() => {
-    mockFetchLyrics.mockReset();
-  });
-
   it('returns network message for fetch failures', () => {
     expect(getLyricsFriendlyError(new Error('Failed to fetch')))
       .toBe('No internet connection. Check your network and try again.');
@@ -51,37 +38,5 @@ describe('getLyricsFriendlyError', () => {
       .toBe('Lyrics service is temporarily unavailable. Please retry in a moment.');
     expect(getLyricsFriendlyError(undefined))
       .toBe('Lyrics service is temporarily unavailable. Please retry in a moment.');
-  });
-
-  it('returns lyric results when the provider finds a match', async () => {
-    mockFetchLyrics.mockResolvedValue({
-      lyrics: 'hello world',
-      source: 'Lyrica (plain)',
-    });
-
-    await expect(
-      MultiSourceLyricsService.fetchLyricsParallel('Song', 'Artist', 180)
-    ).resolves.toEqual([
-      {
-        lyrics: 'hello world',
-        source: 'Lyrica (plain)',
-      },
-    ]);
-  });
-
-  it('returns an empty array when the provider finds no lyrics', async () => {
-    mockFetchLyrics.mockResolvedValue(null);
-
-    await expect(
-      MultiSourceLyricsService.fetchLyricsParallel('Song', 'Artist', 180)
-    ).resolves.toEqual([]);
-  });
-
-  it('rethrows provider errors so the UI can map them to friendly messages', async () => {
-    mockFetchLyrics.mockRejectedValue(new Error('429 rate limit exceeded'));
-
-    await expect(
-      MultiSourceLyricsService.fetchLyricsParallel('Song', 'Artist', 180)
-    ).rejects.toThrow('429 rate limit exceeded');
   });
 });

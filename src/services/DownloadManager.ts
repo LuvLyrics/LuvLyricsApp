@@ -10,8 +10,6 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Song } from '../types/song';
 import { StagingSong } from '../hooks/useSongStaging';
 import { lyricaService } from '../services/LyricaService';
-import { useSongsStore } from '../store/songsStore';
-import { useSettingsStore } from '../store/settingsStore';
 
 class DownloadManager {
     private activeDownloads: Map<string, FileSystem.DownloadResumable> = new Map();
@@ -46,8 +44,9 @@ class DownloadManager {
      * @param onProgress - Callback for download progress
      */
     async finalizeDownload(
-        staging: StagingSong, 
-        onProgress: (progress: number) => void
+        staging: StagingSong,
+        onProgress: (progress: number) => void,
+        downloadDirectoryUri?: string
     ): Promise<Song> {
         
         if (!staging.selectedQuality) throw new Error('No quality selected');
@@ -127,8 +126,7 @@ class DownloadManager {
             let finalAudioUri = audioFile;
             
             try {
-                const settings = useSettingsStore.getState();
-                const safDir = settings.downloadDirectoryUri;
+                const safDir = downloadDirectoryUri;
 
                 if (safDir) {
                     updateProgress(0.96); // 97% - Exporting
