@@ -13,6 +13,8 @@ import Animated, {
   withTiming,
   withSequence,
   withSpring,
+  Easing,
+  cancelAnimation,
   interpolate,
   Extrapolation,
   runOnJS,
@@ -78,7 +80,7 @@ interface PlaybackControlsProps {
   showSkipButtons?: boolean;
 }
 const PlaybackControls = memo(({
-  playing, onToggle, onSkipBack, onSkipForward, animatedButtonStyle, variant, showSkipButtons = true,
+   playing, onToggle, onSkipBack, onSkipForward, animatedButtonStyle, variant, showSkipButtons = true,
 }: PlaybackControlsProps) => {
   if (variant === 'island-collapsed') {
     return (
@@ -243,174 +245,6 @@ export const MiniPlayer: React.FC = () => {
     }
   })();
 
-  // Seek lock timeout (isSeeking shared value lives in positionBus)
-  const seekLockTimeout = useRef<NodeJS.Timeout | null>(null);
-  
-
-
-
-  // ProgressBar width state (kept for classic mode)
-  // const [progressBarWidth] = useState(0);
-  // Cleanup seekLock
-  useEffect(() => {
-    return () => {
-      if (seekLockTimeout.current) clearTimeout(seekLockTimeout.current);
-    };
-  }, []);
-
-  // Track if this is the first song loore)
-  const isInitialLoad = useRef(true);
-
-  // Audio Sync Logic: Auto-load song if it changes in the store
-  useEffect(() => {
-    const syncAudio = async () => {
-      if (!currentSong || !player) return;
-      
-      // If the player doesn't have this audio loaded, load it
-      if (loadedAudioId !== currentSong.id && currentSong.audioUri) {
-        try {
-          if (__DEV__) console.log('[MiniPlayer] Syncing audio for:', currentSong.title);
-          await player.replace(currentSong.audioUri);
-          setLoadedAudioId(currentSong.id);
-
-          // On app startup (first load), don't auto-play
-          // On user-initiated song change, auto-play
-          if (isInitialLoad.current) {
-            isInitialLoad.current = false;
-            if (__DEV__) console.log('[MiniPlayer] Initial load - staying paused');
-          } else {
-            setStorePlaying(true);
-            player.play();
-            if (__DEV__) console.log('[MiniPlayer] User selected song - auto-playing');
-          }
-        } catch (error) {
-          if (__DEV__) console.error('[MiniPlayer] Failed to sync audio:', error);
-        }
-      }
-    };
-    
-    syncAudio();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSong?.id, player, loadedAudioId, setLoadedAudioId, setMiniPlayerHidden, setStorePlaying]);
-
-  // Auto-close removed: Lyrics persist across songs
-  // useEffect(() => { ... }, [currentSong?.id, isIsland]);
-
-  // Capture timestamp when any lyric view opens so SynchronizedLyrics can reset its scroll
-  useEffect(() => {
-    if (expanded || lyricExpanded || fullLyricExpanded || classicFullExpanded) {
-      setLyricExpandedAt(Date.now());
-    }
-  }, [expanded, lyricExpanded, fullLyricExpanded, classicFullExpanded]);
-
-  // Classic Height Animation
-  const animatedIslandStyle = useAnimatedStyle(() => {
-    if (!isIsland) return {};
-
-    const currentWidth = interpolate(
-      expansionProgress.value,
-      [0, 1],
-      [width * 0.52, width - 24], // Expand to full width minus margin * 2 (12 + 12)
-      Extrapolation.CLAMP
-    );
-
-    const trayHeight = interpolate(expansionProgress.value, [0, 1], [50, 190], Extrapolation.CLAMP);
-    const halfHeight = screenHeight * 0.5;
-    const fullHeight = screenHeight * 0.9; // Final stage (90% height)
-
-    const currentHeight = interpolate(
-      fullExpansionProgress.value,
-      [0, 1],
-      [
-        interpolate(lyricExpansionProgress.value, [0, 1], [trayHeight, halfHeight], Extrapolation.CLAMP),
-        fullHeight
-      ],
-      Extrapolation.CLAMP
-    );
-    
-    const currentRadius = interpolate(
-      fullExpansionProgress.value,
-      [0, 1],
-      [
-        interpolate(lyricExpansionProgress.value, [0, 1], 
-          [interpolate(expansionProgress.value, [0, 1], [30, 44], Extrapolation.CLAMP), 24], 
-          Extrapolation.CLAMP
-        ),
-        28 // Slightly more rounded again at full screen for aesthetics
-      ],
-      Extrapolation.CLAMP
-    );
-
-    return {
-      width: currentWidth,
-      height: currentHeight,
-      borderRadius: currentRadius,
-    };
-  });
-
-  // Classic Height Animation — three stages: collapsed → half → full (95%)
-  const animatedClassicStyle = useAnimatedStyle(() => {
-    if (isIsland) return {};
-    const halfHeight = screenHeight * 0.54;   // slightly taller so it fully clears "All Songs"
-    const fullHeight = screenHeight * 0.915;
-    const baseHeight = interpolate(expansionProgress.value, [0, 1], [70, halfHeight], Extrapolation.CLAMP);
-    const fullExtension = interpolate(classicFullProgress.value, [0, 1], [0, fullHeight - halfHeight], Extrapolation.CLAMP);
-    return { height: baseHeight + fullExtension };
-  });
-  
-  // Classic Lyrics Opacity — fade in early so they appear smoothly as the bar grows
-  const animatedClassicLyricsStyle = useAnimatedStyle(() => {
-    const expandOp = interpolate(expansionProgress.value, [0.25, 0.75], [0, 1], Extrapolation.CLAMP);
-    return {
-      opacity: expandOp * transitionOpacity.value,
-    };
-  });
-  
-  // Get Current Lyric (Use displayedSong for persistent view)
-  // Use displayedSong if expanded/classic to prevent instant jump, else currentSong
-  const songForLyrics = (!isIsland && expanded) ? displayedSong : currentSong;
-  
-  const lyricsToUse = (showTransliteration && songForLyrics?.transliteratedLyrics && songForLyrics.transliteratedLyrics.length > 0)
-    ? songForLyrics.transliteratedLyrics
-    : songForLyrics?.lyrics;
-
-  const lyricsDelay = useSettingsStore(state => state.lyricsDelay);
-
-  // Lyric index computed on UI thread — re-renders only when the active line changes
-  const currentLyricIndexDV = useDerivedValue(() => {
-    if (!lyricsToUse || lyricsToUse.length === 0) return -1;
-    return getCurrentLineIndex(lyricsToUse, positionSV.value + lyricsDelay);
-  });
-
-  const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
-  useAnimatedReaction(
-    () => currentLyricIndexDV.value,
-    (next, prev) => {
-      if (next !== prev) {
-        runOnJS(setCurrentLyricIndex)(next);
-      }
-    }
-  );
-
-  const currentLyricText = (currentLyricIndex !== -1 && lyricsToUse?.[currentLyricIndex])
-    ? lyricsToUse[currentLyricIndex].text
-    : '';
-
-  /* 
-     VISUAL HIGHLIGHT LAG 
-     User wants text to "come up" before highlighting.
-     - currentLyricIndex: Logic source (time based).
-  */
-
-
-
-
-
-
-  
-  const skipForward = useCallback(async (e?: any) => {
-    e?.stopPropagation();
-    await usePlayerStore.getState().nextInPlaylist();
   }, []);
 
   const skipBackward = useCallback((e?: any) => {
@@ -428,6 +262,28 @@ export const MiniPlayer: React.FC = () => {
         usePlayerStore.getState().previousInPlaylist();
     }
   }, [player]);
+
+  // -------------------------------------------------------------------------
+  // Capture the JS-state flags we need inside the worklet as shared values.
+  // Reading React state inside a worklet closure is unsafe — the closure
+  // captures a stale value. Shared values are always fresh on the UI thread.
+  // -------------------------------------------------------------------------
+  const expandedSV = useSharedValue(false);
+  const lyricExpandedSV = useSharedValue(false);
+  const fullLyricExpandedSV = useSharedValue(false);
+  const classicFullExpandedSV = useSharedValue(false);
+  const isIslandSV = useSharedValue(isIsland);
+  const hasLyricsSV = useSharedValue(false);
+
+  // Keep shared flags in sync with React state (cheap writes, no re-render).
+  useEffect(() => { expandedSV.value = expanded; }, [expanded, expandedSV]);
+  useEffect(() => { lyricExpandedSV.value = lyricExpanded; }, [lyricExpanded, lyricExpandedSV]);
+  useEffect(() => { fullLyricExpandedSV.value = fullLyricExpanded; }, [fullLyricExpanded, fullLyricExpandedSV]);
+  useEffect(() => { classicFullExpandedSV.value = classicFullExpanded; }, [classicFullExpanded, classicFullExpandedSV]);
+  useEffect(() => { isIslandSV.value = isIsland; }, [isIsland, isIslandSV]);
+  useEffect(() => {
+    hasLyricsSV.value = !!(currentSong?.lyrics && currentSong.lyrics.length > 0);
+  }, [currentSong?.lyrics, hasLyricsSV]);
 
   // -------------------------------------------------------------------------
   // Capture the JS-state flags we need inside the worklet as shared values.
@@ -474,20 +330,6 @@ export const MiniPlayer: React.FC = () => {
         if (!classicFullExpandedSV.value) {
           if (event.translationY < 0) {
             // Drag up to expand to full
-            classicFullProgress.value = Math.min(
-              Math.abs(event.translationY) / 200,
-              1,
-            );
-          } else if (event.translationY > 0) {
-            // Drag down to collapse from half
-            expansionProgress.value = Math.max(
-              1 - event.translationY / 200,
-              0,
-            );
-          }
-        } else {
-          if (event.translationY > 0) {
-            // Drag down from full to half
             classicFullProgress.value =
               1 - Math.min(event.translationY / 200, 1);
           }
@@ -535,112 +377,6 @@ export const MiniPlayer: React.FC = () => {
         return;
       }
 
-      if (
-        !isIslandSV.value &&
-        expandedSV.value &&
-        classicFullExpandedSV.value &&
-        isHoriz
-      ) {
-        if (event.translationX < -60 || event.velocityX < -600) {
-          runOnJS(skipForward)();
-          return;
-        } else if (event.translationX > 60 || event.velocityX > 600) {
-          runOnJS(skipBackward)();
-          return;
-        }
-      }
-
-      if (!isIslandSV.value && expandedSV.value) {
-        const vel = event.velocityY;
-        const trans = event.translationY;
-
-        if (!classicFullExpandedSV.value) {
-          if (trans < -50 || vel < -500) {
-            classicFullProgress.value = withSpring(1);
-            runOnJS(setClassicFullExpanded)(true);
-          } else if (trans > 50 || vel > 500) {
-            expansionProgress.value = withSpring(0);
-            classicFullProgress.value = withSpring(0);
-            runOnJS(setExpanded)(false);
-            runOnJS(setClassicFullExpanded)(false);
-          } else {
-            expansionProgress.value = withSpring(1);
-            classicFullProgress.value = withSpring(0);
-          }
-        } else {
-          if (trans > 50 || vel > 500) {
-            classicFullProgress.value = withSpring(0);
-            runOnJS(setClassicFullExpanded)(false);
-          } else {
-            classicFullProgress.value = withSpring(1);
-          }
-        }
-      } else if (expandedSV.value) {
-        const vel = event.velocityY;
-        const trans = event.translationY;
-
-        if (!lyricExpandedSV.value && !fullLyricExpandedSV.value) {
-          if (trans > 50 || vel > 500) {
-            lyricExpansionProgress.value = withSpring(1);
-            runOnJS(setLyricExpanded)(true);
-          } else {
-            lyricExpansionProgress.value = withSpring(0);
-          }
-        } else if (lyricExpandedSV.value && !fullLyricExpandedSV.value) {
-          if ((trans > 50 || vel > 500) && hasLyricsSV.value) {
-            fullExpansionProgress.value = withSpring(1);
-            runOnJS(setFullLyricExpanded)(true);
-          } else if (trans < -50 || vel < -500) {
-            lyricExpansionProgress.value = withSpring(0);
-            runOnJS(setLyricExpanded)(false);
-            runOnJS(setFullLyricExpanded)(false);
-          } else {
-            lyricExpansionProgress.value = withSpring(1);
-            fullExpansionProgress.value = withSpring(0);
-          }
-        } else if (fullLyricExpandedSV.value) {
-          if (trans < -50 || vel < -500) {
-            fullExpansionProgress.value = withSpring(0);
-            runOnJS(setFullLyricExpanded)(false);
-          } else {
-            fullExpansionProgress.value = withSpring(1);
-          }
-        }
-      }
-    });
-
-  const toggleExpand = useCallback(() => {
-    if (expanded) {
-      expansionProgress.value = withSpring(0);
-      lyricExpansionProgress.value = withSpring(0);
-      fullExpansionProgress.value = withSpring(0);
-      classicFullProgress.value = withSpring(0);
-      setExpanded(false);
-      setLyricExpanded(false);
-      setFullLyricExpanded(false);
-      setClassicFullExpanded(false);
-      return;
-    }
-    
-    expansionProgress.value = withSpring(1);
-    setExpanded(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expanded]);
-
-  const openNowPlaying = useCallback(() => {
-    if (currentSong) {
-      setMiniPlayerHidden(true);
-      (navigation as any).navigate('NowPlaying', { songId: currentSong.id });
-      expansionProgress.value = withSpring(0);
-      lyricExpansionProgress.value = withSpring(0);
-      fullExpansionProgress.value = withSpring(0);
-      classicFullProgress.value = withSpring(0);
-      setExpanded(false);
-      setLyricExpanded(false);
-      setFullLyricExpanded(false);
-      setClassicFullExpanded(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSong, setMiniPlayerHidden, navigation]);
 
   const handleLyricPress = useCallback((timestamp: number) => {

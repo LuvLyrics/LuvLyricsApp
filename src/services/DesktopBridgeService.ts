@@ -1248,7 +1248,6 @@ class DesktopBridgeService {
     if (!clientId) return;
     const client = this.clients.get(clientId);
     if (!client) return;
-    // const playerStore = usePlayerStore.getState();
     this.sendToClient(
       client,
       JSON.stringify({

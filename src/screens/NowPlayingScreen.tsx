@@ -1,4 +1,4 @@
-﻿import React, { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import * as GestureHandler from 'react-native-gesture-handler';
 import { useFocusEffect } from '@react-navigation/native';
@@ -146,83 +146,97 @@ const NowPlayingScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [currentSong, updateCurrentSong, addRecentArt, setShowCoverSearch]);
 
-  return (
-    <GestureDetector gesture={panGesture}>
-      <View style={[styles.container, { backgroundColor: isDark ? '#000' : colors.background }]}>
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? '#000' : colors.background }]} />
+      {/* Issue 4: Dynamic Island Bottom Controls */}
+      <Animated.View style={[styles.bottomControlsContainer, animatedStyle]} pointerEvents={controlsVisible ? 'auto' : 'none'}>
+          {/* 3-Layer Background Stack (Dynamic Island Style) - Replaced with Real BlurView */}
+          <View style={[styles.bottomControlsPill, { backgroundColor: '#181818' }]}>
 
-        <NowPlayingBackground
-          isDynamicTheme={isDynamicTheme}
-          coverImageUri={currentSong?.coverImageUri}
-          gradientColors={gradientColors}
-          animateBackground={animateBackground}
-          blob1Style={blob1Style}
-          blob2Style={blob2Style}
-          blob3Style={blob3Style}
-          isDark={isDark}
-        />
+             
+             {/* Dynamic Island Body - Blurred Album Art Color */}
+             {currentSong?.coverImageUri && (
+                <Image 
+                  source={{ uri: currentSong.coverImageUri }} 
+                  style={[StyleSheet.absoluteFill, { opacity: 0.5 }]} 
+                  blurRadius={50}
+                />
+             )}
 
-        <NowPlayingHeader
-          animatedStyle={animatedStyle}
-          controlsVisible={controlsVisible}
-          onGoBack={() => navigation.goBack()}
-          onMenuPress={handleMenuPress}
-          menuVisible={menuVisible}
-          onMenuClose={() => setMenuVisible(false)}
-          menuAnchor={menuAnchor}
-          menuOptions={menuOptions}
-          currentSongTitle={currentSong?.title}
-          colors={colors}
-          isDark={isDark}
-        />
+             {/* Dark Gradient Overlay for readability & depth */}
+             <LinearGradient
+              colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+              style={StyleSheet.absoluteFill}
+             />
+            
+          {/* Content */}
+             {/* Content */}
+             <View style={styles.bottomControlsContent}>
+               
+               {/* 0. Top Right Menu (Three Dots) - Absolute Positioned */}
+               <View style={{ position: 'absolute', top: 15, right: 20, zIndex: 10 }}>
+                  <Pressable onPress={() => setShowLyrics(!showLyrics)} style={{ padding: 4 }}>
+                    <Ionicons name="ellipsis-horizontal" size={24} color="rgba(255,255,255,0.6)" />
+                  </Pressable>
+               </View>
 
-        <CoverArtSearchScreen
-          visible={showCoverSearch}
-          initialQuery={`${currentSong?.title} ${currentSong?.artist}`}
-          onClose={() => setShowCoverSearch(false)}
-          onSelect={handleCoverSelect}
-        />
+               {/* 1. Main Controls - Top */}
+               <View style={styles.controls}>
+                  <Pressable onPress={skipBackward} style={styles.controlBtn}>
+                    <Ionicons name="play-back" size={24} color="#fff" /> 
+                  </Pressable>
+                  
+                  <Pressable onPress={togglePlay} style={styles.playBtnLarge}>
+                    <Animated.View style={playButtonStyle}>
+                         <Ionicons 
+                          name={storePlaying ? 'pause' : 'play'} 
+                          size={32} 
+                          color="#000" 
+                        />
+                    </Animated.View>
+                  </Pressable>
+                  
+                  <Pressable onPress={skipForward} style={styles.controlBtn}>
+                    <Ionicons name="play-forward" size={24} color="#fff" /> 
+                  </Pressable>
+               </View>
 
-        <View style={styles.contentArea}>
-          <NowPlayingLyricsArea
-            showLyrics={showLyrics}
-            processedLyrics={processedLyrics}
-            currentTime={positionSV}
-            onLyricPress={handleLyricTap}
-            songTitle={currentSong?.title}
-            highlightColor={gradientColors[0] !== '#000' ? gradientColors[0] : 'rgba(255,255,255,0.2)'}
-            isUserScrollingRef={isUserScrolling}
-            scrollTimeoutRef={scrollTimeoutRef}
-            flatListRef={flatListRef}
-            coverImageUri={currentSong?.coverImageUri}
-            storePlaying={storePlaying}
-            isDark={isDark}
-            colors={colors}
-            onCoverLongPress={() => setShowCoverSearch(true)}
-          />
-        </View>
+               {/* 2. Scrubber - Middle */}
+               <View style={{ marginVertical: 8 }}> 
+                  <TimelineScrubber
+                     currentTime={positionSV}
+                     duration={durationSV}
+                     onSeek={handleScrub}
+                     variant="classic"
+                  />
+               </View>
 
-        <NowPlayingControls
-          animatedStyle={animatedStyle}
-          controlsVisible={controlsVisible}
-          isDark={isDark}
-          colors={colors}
-          coverImageUri={currentSong?.coverImageUri}
-          storePlaying={storePlaying}
-          currentSongTitle={currentSong?.title}
-          currentSongArtist={currentSong?.artist}
-          isCurrentSongLiked={isCurrentSongLiked}
-          playButtonStyle={playButtonStyle}
-          onTogglePlay={togglePlay}
-          onSkipForward={skipForward}
-          onSkipBackward={skipBackward}
-          onToggleLike={() => currentSong && toggleLike(currentSong.id)}
-          onToggleLyrics={() => setShowLyrics(!showLyrics)}
-          positionSV={positionSV}
-          durationSV={durationSV}
-          onSeek={handleScrub}
-        />
-      </View>
+               {/* 3. Mini Info (Title + Artist) - Bottom & Centered (No Cover) */}
+                <View style={[styles.miniInfo, { paddingHorizontal: 40 }]}>
+                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', position: 'relative' }}>
+                       <View style={{ flex: 1, alignItems: 'center' }}>
+                           <Text style={styles.miniTitle} numberOfLines={1}>{currentSong?.title}</Text>
+                           <Text style={styles.miniArtist} numberOfLines={1}>{currentSong?.artist}</Text>
+                       </View>
+                       
+                       <Pressable 
+                         onPress={() => currentSong && toggleLike(currentSong.id)}
+                         style={({ pressed }) => [
+                           { position: 'absolute', right: -25 },
+                           pressed && { transform: [{ scale: 1.4 }] }
+                         ]}
+                         hitSlop={15}
+                       >
+                           <Ionicons 
+                             name={currentSong?.isLiked ? "heart" : "heart-outline"} 
+                             size={30} 
+                             color="#fff"
+                           />
+                       </Pressable>
+                   </View>
+                </View>
+             </View>
+          </View>
+      </Animated.View>
+    </View>
     </GestureDetector>
   );
 };

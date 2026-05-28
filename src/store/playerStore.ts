@@ -12,6 +12,12 @@ export const playerControls = {
   seekTo: (_pos: number) => { if (__DEV__) console.warn('[playerControls] Player not initialized'); },
 };
 
+// Injected by songsStore at init — breaks the circular require in nextInPlaylist
+let _getSongs: (() => Song[]) | null = null;
+export function registerSongsGetter(fn: () => Song[]): void {
+  _getSongs = fn;
+}
+
 interface PlayerState {
   currentSongId: string | null;
   currentSong: Song | null;
@@ -212,7 +218,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // Rebuild from DB so auto-next still works — no circular dep to songsStore
     if (!state.playlistQueue || state.playlistQueue.length === 0) {
       if (state.currentPlaylistId === 'library' && state.currentSongId) {
-        const allSongs = await queries.getAllSongs();
+        const allSongs: Song[] = _getSongs ? _getSongs() : [];
         if (allSongs.length > 0) {
           const idx = allSongs.findIndex((s: Song) => s.id === state.currentSongId);
           set({ playlistQueue: allSongs, currentQueueIndex: idx !== -1 ? idx : 0 });

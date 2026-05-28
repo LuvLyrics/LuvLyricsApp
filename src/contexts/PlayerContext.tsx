@@ -205,6 +205,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       const activeSongId = store.currentSongId;
+      const justSought = Date.now() - lastSeekAtRef.current < 1500;
       const shouldAdvance = didJustFinish && !!activeSongId && endHandledForSongIdRef.current !== activeSongId;
 
       if (shouldAdvance) {

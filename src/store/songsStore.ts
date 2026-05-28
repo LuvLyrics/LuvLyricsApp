@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { Song, SortOption } from '../types/song';
 import * as queries from '../database/queries';
 import { useDailyStatsStore } from './dailyStatsStore';
+import { registerSongsGetter } from './playerStore';
 
 interface SongsState {
   // State
@@ -222,9 +223,9 @@ export const useSongsStore = create<SongsState>()((set, get) => ({
              set((state) => {
                 const song = state.songs.find(s => s.id === songId);
                 if (!song) return state;
-                const updatedSong = { ...song, isLiked: !song.isLiked };
-                return { songs: state.songs.map(s => s.id === songId ? updatedSong : s) };
-             });
+                 const updatedSong = { ...song, isLiked: !song.isLiked };
+                 return { songs: state.songs.map(s => s.id === songId ? updatedSong : s) };
+              });
 
              const { usePlayerStore } = await import('./playerStore');
              const playerState = usePlayerStore.getState();
@@ -239,4 +240,5 @@ export const useSongsStore = create<SongsState>()((set, get) => ({
       clearError: () => set({ error: null }),
 }));
 
-
+// Give playerStore a sync path to songs — breaks the circular require in nextInPlaylist
+registerSongsGetter(() => useSongsStore.getState().songs);

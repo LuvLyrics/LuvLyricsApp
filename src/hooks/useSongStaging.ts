@@ -4,6 +4,7 @@ import { downloadManager } from '../services/DownloadManager';
 import { useSongsStore } from '../store/songsStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { LyricaResult } from '../services/LyricaService';
+import { MultiSourceSearchService } from '../services/MultiSourceSearchService';
 import { UnifiedSong } from '../types/song';
 import { fetchCoverArt, fetchStagingLyrics } from '../services/stagingOrchestrator';
 
