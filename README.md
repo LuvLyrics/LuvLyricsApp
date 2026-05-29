@@ -1,6 +1,6 @@
 # LuvLyrics
 
-[![CI](https://github.com/peterish8/LuvLyrics/actions/workflows/ci.yml/badge.svg)](https://github.com/peterish8/LuvLyrics/actions/workflows/ci.yml)
+[![CI](https://github.com/LuvLyricsApp/LuvLyricsApp/actions/workflows/ci.yml/badge.svg)](https://github.com/LuvLyricsApp/LuvLyricsApp/actions/workflows/ci.yml)
 [![Expo](https://img.shields.io/badge/Expo-54.0-000020?style=flat-square&logo=expo&logoColor=white)](https://expo.dev)
 [![React Native](https://img.shields.io/badge/React_Native-0.81-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactnative.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -28,7 +28,7 @@ Recent improvements:
 
 Good places to start:
 
-- Check open issues: https://github.com/peterish8/LuvLyrics/issues
+- Check open issues: https://github.com/LuvLyricsApp/LuvLyricsApp/issues
 - Pick issues labeled `good first issue` or `help wanted`
 - Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a PR
 - Follow [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
