@@ -15,6 +15,11 @@ This project is open for contributors.
 
 Recent improvements:
 
+- **Hybrid Kotlin native architecture** — four Expo Modules API Kotlin modules replace JS-thread bottlenecks:
+  - `StartupModule` preloads songs/playlists in `Application.onCreate()`, cutting cold-start from ~1.5 s to ~500 ms
+  - `MainPlayerModule` uses Media3 ExoPlayer + MediaSessionService — fixes notification buttons (⏮ ⏸/▶ ⏭), lock-screen controls, and Bluetooth headphone skip
+  - `LuvsPlayerModule` manages a 6-slot ExoPlayer pool for instant swipe-to-next on the Luvs reel (zero JS bridge round-trips during gesture)
+  - `DownloaderModule` uses WorkManager `CoroutineWorker` so downloads survive app backgrounding and device restarts
 - Player end-of-song detection is more reliable with a near-end fallback that triggers the next track even when `didJustFinish` misses
 - Download progress UI is smoother with throttled callbacks and concurrent downloads increased to 2
 - Lyrics scrolling is now buttery-smooth with `@shopify/flash-list` view recycling, debounced layout measurements, and binary-search active-line detection
@@ -38,7 +43,10 @@ Good places to start:
 - SQLite via `expo-sqlite`
 - Zustand for state
 - `react-native-tcp-socket` and `react-native-zeroconf` for desktop bridge networking
-- `expo-av` for audio playback
+- **Media3 ExoPlayer + MediaSessionService** for native Android playback, notification, and Bluetooth controls
+- **WorkManager** for background downloads that survive app kill and device restart
+- **Expo Modules API (Kotlin)** for four native modules: `StartupModule`, `MainPlayerModule`, `LuvsPlayerModule`, `DownloaderModule`
+- `expo-av` for audio playback (iOS and Android fallback)
 - `expo-file-system` for local file and download management
 - `@shopify/flash-list` for high-performance list virtualization (library and lyrics)
 - Jest + ts-jest for unit tests
