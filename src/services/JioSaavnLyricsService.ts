@@ -26,17 +26,17 @@ interface SaavnSearchResponse {
   };
 }
 
-interface SaavnSongDetails {
-  success: boolean;
-  data: {
-    id: string;
-    name: string;
-    hasLyrics: boolean;
-    lyricsId: string | null;
-    lyrics?: string; // This field may or may not exist - we'll test
-    // ... other fields
-  };
-}
+// interface SaavnSongDetails {
+//   success: boolean;
+//   data: {
+//     id: string;
+//     name: string;
+//     hasLyrics: boolean;
+//     lyricsId: string | null;
+//     lyrics?: string; // This field may or may not exist - we'll test
+//     // ... other fields
+//   };
+// }
 
 export interface SaavnLyricsResult {
   lyrics: string;
@@ -55,7 +55,7 @@ export const JioSaavnLyricsService = {
   getLyrics: async (
     title: string,
     artist: string,
-    duration?: number
+    _duration?: number
   ): Promise<SaavnLyricsResult | null> => {
     try {
       console.log(`[JioSaavn] 🔍 Searching for: ${title} - ${artist}`);

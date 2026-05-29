@@ -33,8 +33,9 @@ import { useLuvsPreferencesStore } from '../store/luvsPreferencesStore';
 import { UnifiedSong } from '../types/song';
 import { LuvsVaultModal } from '../components/LuvsVaultModal';
 import { PerformanceHUD } from '../components/PerformanceHUD';
+import { useThemeColors, useIsDark } from '../contexts/ThemeContext';
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Full screen - no tab bar deduction
 const LUV_HEIGHT = SCREEN_HEIGHT;
@@ -42,28 +43,31 @@ const LUV_HEIGHT = SCREEN_HEIGHT;
 const LuvsScreen: React.FC = () => {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
+  const colors = useThemeColors();
+  const isDark = useIsDark();
 
   const {
     feedSongs,
     currentIndex,
     vault,
     isLoading,
-    setFeedSongs,
-    appendFeedSongs,
     setCurrentIndex,
     addToVault,
     removeFromVault,
     isInVault,
-    setIsLoading,
   } = useLuvsFeedStore();
   
   const insets = useSafeAreaInsets();
 
   const viewTrackingRef = useRef(-1);
+  const currentIndexRef = useRef(currentIndex);
   const flatListRef = useRef<FlatList>(null);
   const [showVault, setShowVault] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false); // Start paused by default
   const viewStartTimeRef = useRef<number>(Date.now());
+
+  // Keep ref in sync so useFocusEffect can read latest index without a dep on it
+  useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
 
   const { recordInteraction, loadFromStorage } = useLuvsPreferencesStore();
 
@@ -80,29 +84,26 @@ const LuvsScreen: React.FC = () => {
     },
   });
 
-  // Restore scroll position when screen becomes focused
+  // Restore scroll position when screen becomes focused.
+  // Stable deps [] so the cleanup (stopAll) only fires on actual screen blur,
+  // not on every swipe or feed load — those were causing spurious auto-resumes.
   useFocusEffect(
     useCallback(() => {
-      // Hide status bar for immersive experience
       StatusBar.setHidden(true);
 
-      if (feedSongs.length > 0 && currentIndex > 0) {
+      const idx = currentIndexRef.current;
+      if (idx > 0) {
         setTimeout(() => {
-          flatListRef.current?.scrollToIndex({
-            index: currentIndex,
-            animated: false,
-          });
+          flatListRef.current?.scrollToIndex({ index: idx, animated: false });
         }, 100);
       }
 
       return () => {
-        // Show status bar when leaving
         StatusBar.setHidden(false);
-        // FORCE STOP ALL LUV AUDIO
         setIsPlaying(false);
         luvsBufferManager.stopAll();
       };
-    }, [currentIndex, feedSongs.length])
+    }, [])
   );
 
   // Load initial feed using recommendation engine
@@ -142,7 +143,7 @@ const LuvsScreen: React.FC = () => {
       mounted = false;
       luvsBufferManager.exitLuvsMode();
     };
-  }, [loadFromStorage, loadInitialFeed]); 
+  }, [loadFromStorage, loadInitialFeed, feedSongs.length]); 
 
   // Ensure we start playing when screen is focused
   useEffect(() => {
@@ -151,10 +152,11 @@ const LuvsScreen: React.FC = () => {
     }
   }, [isFocused]);
 
+  const hasFeedSongs = feedSongs.length > 0;
   useEffect(() => {
     luvsBufferManager.setSuspended(!isFocused);
     
-    if (isFocused && feedSongs.length > 0) {
+    if (isFocused && hasFeedSongs) {
       // If we are coming BACK to the screen, we might want to respect autoPlay
       // But usually isPlaying state is what we want to maintain during a session.
       if (isPlaying) {
@@ -163,7 +165,7 @@ const LuvsScreen: React.FC = () => {
     } else if (!isFocused) {
       luvsBufferManager.pause();
     }
-  }, [isFocused, feedSongs.length > 0]);
+  }, [isFocused, hasFeedSongs, isPlaying]);
 
   // Load more songs using recommendation engine
   const loadMoreSongs = useCallback(async () => {
@@ -296,7 +298,7 @@ const LuvsScreen: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#000' : colors.background }]}>
       {feedSongs.length > 0 ? (
         <Animated.FlatList
           ref={flatListRef as any}
@@ -331,9 +333,9 @@ const LuvsScreen: React.FC = () => {
       ) : (
         !isLoading && (
           <View style={styles.emptyState}>
-            <Ionicons name="musical-notes-outline" size={80} color="rgba(255,255,255,0.3)" />
-            <Text style={styles.emptyText}>No luvs available</Text>
-            <Text style={styles.emptySubtext}>
+            <Ionicons name="musical-notes-outline" size={80} color={isDark ? 'rgba(255,255,255,0.3)' : colors.textMuted} />
+            <Text style={[styles.emptyText, { color: isDark ? '#fff' : colors.textPrimary }]}>No luvs available</Text>
+            <Text style={[styles.emptySubtext, { color: isDark ? 'rgba(255,255,255,0.6)' : colors.textSecondary }]}>
               Pull down to refresh or check your connection
             </Text>
           </View>
@@ -386,7 +388,6 @@ const LuvsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   backButton: {
     position: 'absolute',

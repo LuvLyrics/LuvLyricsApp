@@ -19,7 +19,7 @@ import { registerWidgetTaskHandler } from 'react-native-android-widget';
 import { SongWidget } from './src/widget/SongWidget';
 
 registerWidgetTaskHandler(async (props) => {
-  const { widgetInfo, renderWidget } = props;
+  const { renderWidget } = props;
   renderWidget(
     React.createElement(SongWidget)
   );

@@ -1,20 +1,44 @@
 /**
  * DownloadManager.ts
  * 
- * Handles the physical downloading of assets and atomic database updates.
- * Ensures that a song is only added to the library if all files (audio, cover, lyrics) 
- * are successfully written to disk.
+ * Handles physical downloading of assets and database finalization.
+ * On Android, delegates tasks to native WorkManager-based DownloaderModule to survive app termination.
+ * On iOS, continues using FileSystem.DownloadResumable.
  */
 
+import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Song } from '../types/song';
 import { StagingSong } from '../hooks/useSongStaging';
 import { lyricaService } from '../services/LyricaService';
 
+let DownloaderModule: any = null;
+let downloaderEmitter: any = null;
+
+if (Platform.OS === 'android') {
+  try {
+    const { requireNativeModule, EventEmitter } = require('expo-modules-core');
+    DownloaderModule = requireNativeModule('Downloader');
+    downloaderEmitter = new EventEmitter(DownloaderModule);
+  } catch (e) {
+    console.error('[DownloadManager] Failed to load native DownloaderModule:', e);
+  }
+}
+
 class DownloadManager {
     private activeDownloads: Map<string, FileSystem.DownloadResumable> = new Map();
 
     async pauseDownload(id: string) {
+        if (Platform.OS === 'android' && DownloaderModule) {
+            try {
+                DownloaderModule.cancel(id);
+                if (__DEV__) console.log(`[DownloadManager] Android Download Canceled/Paused: ${id}`);
+            } catch (e) {
+                if (__DEV__) console.error(`[DownloadManager] Android cancel failed: ${id}`, e);
+            }
+            return;
+        }
+
         const download = this.activeDownloads.get(id);
         if (download) {
             try {
@@ -27,6 +51,11 @@ class DownloadManager {
     }
 
     async resumeDownload(id: string) {
+        // Android resumes are re-enqueued by the download queue manager
+        if (Platform.OS === 'android') {
+            return;
+        }
+
         const download = this.activeDownloads.get(id);
         if (download) {
             try {
@@ -51,9 +80,68 @@ class DownloadManager {
         
         if (!staging.selectedQuality) throw new Error('No quality selected');
 
+        // ANDROID NATIVE PATH (WorkManager + HTTP stream + SAF copy)
+        if (Platform.OS === 'android' && DownloaderModule && downloaderEmitter) {
+            return new Promise((resolve, reject) => {
+                const songDir = `${FileSystem.documentDirectory}music/${staging.id}/`;
+                const audioUrl = staging.selectedQuality!.url;
+                const coverUrl = staging.selectedCoverUri || null;
+                const lyrics = staging.selectedLyrics || null;
+                const safDir = downloadDirectoryUri || null;
+
+                let progressSub: any = null;
+
+                const cleanup = () => {
+                    progressSub?.remove();
+                };
+
+                progressSub = downloaderEmitter.addListener('onDownloadProgress', (event: any) => {
+                    if (event.id !== staging.id) return;
+
+                    const progress = event.progress;
+                    const status = event.status;
+
+                    if (status === 'running') {
+                        onProgress(progress);
+                    } else if (status === 'exporting') {
+                        onProgress(0.95);
+                    } else if (status === 'succeeded') {
+                        onProgress(1.0);
+                        cleanup();
+
+                        const newSong: Song = {
+                            id: staging.id,
+                            title: staging.title,
+                            artist: staging.artist,
+                            album: staging.album, 
+                            duration: staging.duration,
+                            coverImageUri: event.coverUri || undefined,
+                            audioUri: event.audioUri,
+                            playCount: 0,
+                            dateCreated: new Date().toISOString(),
+                            dateModified: new Date().toISOString(),
+                            lyrics: staging.selectedLyrics ? lyricaService.parseLrc(staging.selectedLyrics, staging.duration) : [],
+                            gradientId: Math.floor(Math.random() * 5).toString()
+                        };
+                        resolve(newSong);
+                    } else if (status === 'failed' || status === 'cancelled') {
+                        cleanup();
+                        reject(new Error(`Download failed with status: ${status}`));
+                    }
+                });
+
+                try {
+                    DownloaderModule.enqueue(staging.id, audioUrl, coverUrl, songDir, lyrics, safDir);
+                } catch (e) {
+                    cleanup();
+                    reject(e);
+                }
+            });
+        }
+
+        // IOS FALLBACK PATH
         const songDir = `${FileSystem.documentDirectory}music/${staging.id}/`;
         
-        // Throttle progress updates for smooth UI without slowing network I/O.
         let lastProgressEmit = 0;
         const updateProgress = (progress: number) => {
             const now = Date.now();
@@ -63,9 +151,7 @@ class DownloadManager {
             }
         };
         
-        // 1. Prepare Directory
-        updateProgress(0.05); // 5% - Starting
-        // Clean up if exists (atomic retry)
+        updateProgress(0.05);
         const dirInfo = await FileSystem.getInfoAsync(songDir);
         if (dirInfo.exists) {
             await FileSystem.deleteAsync(songDir);
@@ -73,8 +159,7 @@ class DownloadManager {
         await FileSystem.makeDirectoryAsync(songDir, { intermediates: true });
 
         try {
-            // 2. Resolve & Download Audio
-            updateProgress(0.1); // 10% - Directory ready
+            updateProgress(0.1);
             let downloadUrl = staging.selectedQuality.url;
             const format = staging.selectedQuality.format || 'mp3';
             const audioFile = `${songDir}audio.${format}`;
@@ -87,7 +172,7 @@ class DownloadManager {
                 {},
                 (downloadProgress) => {
                     const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-                    updateProgress(0.1 + (progress * 0.7)); // 10% to 80%
+                    updateProgress(0.1 + (progress * 0.7));
                 }
             );
 
@@ -95,71 +180,51 @@ class DownloadManager {
             
             try {
                 await audioDownload.downloadAsync();
-                updateProgress(0.8); // 80% - Audio downloaded
+                updateProgress(0.8);
             } finally {
                 this.activeDownloads.delete(staging.id);
             }
 
-
-            // 3. Download Cover Art
-            updateProgress(0.85); // 85% - Starting cover download
-            let coverLocalUri: string | undefined = undefined;
+            updateProgress(0.85);
+            let coverLocalUri: string | undefined;
             if (staging.selectedCoverUri) {
                 const coverFile = `${songDir}cover.jpg`;
                 const coverDownload = FileSystem.createDownloadResumable(staging.selectedCoverUri, coverFile);
                 await coverDownload.downloadAsync();
                 coverLocalUri = coverFile;
             }
-            updateProgress(0.9); // 90% - Cover downloaded
+            updateProgress(0.9);
 
-
-            // 4. Save Lyrics
-            updateProgress(0.95); // 95% - Saving lyrics
+            updateProgress(0.95);
             if (staging.selectedLyrics) {
                 const lyricsFile = `${songDir}lyrics.lrc`;
                 await FileSystem.writeAsStringAsync(lyricsFile, staging.selectedLyrics);
             }
 
-            // 5. SAF Export (if configured)
-            // If the user has selected a download directory, we copy the audio there
-            // and point the database to THAT persistent URI.
             let finalAudioUri = audioFile;
             
             try {
                 const safDir = downloadDirectoryUri;
 
                 if (safDir) {
-                    updateProgress(0.96); // 97% - Exporting
+                    updateProgress(0.96);
                     if (__DEV__) console.log('[DownloadManager] SAF configured, exporting to:', safDir);
                     
                     const mimeType = format === 'm4a' ? 'audio/mp4' : 'audio/mpeg';
                     const friendlyName = `${staging.artist} - ${staging.title}`;
                     
-                    // 1. Create file 
                     const safUri = await FileSystem.StorageAccessFramework.createFileAsync(safDir, friendlyName, mimeType);
                     
-                    // 2. Copy content (Read/Write as Base64)
-                    // Note: copyAsync support for SAF is flaky, using explicit read/write
                     const fileContent = await FileSystem.readAsStringAsync(audioFile, { encoding: FileSystem.EncodingType.Base64 });
                     await FileSystem.writeAsStringAsync(safUri, fileContent, { encoding: FileSystem.EncodingType.Base64 });
                     
                     finalAudioUri = safUri;
                     if (__DEV__) console.log(`[DownloadManager] SAF export success. URI: ${safUri.substring(0, 80)}...`);
-                    
-                    // Optional: Delete internal file to save space? 
-                    // No, let's keep it as cache/backup or delete it?
-                    // If we delete it, and SAF URI fails to play, we are out of luck.
-                    // But duplicates waste space. safely delete internal if successful.
-                    // await FileSystem.deleteAsync(audioFile); 
-                    // (Commented out for safety for now)
                 }
             } catch (e) {
                 if (__DEV__) console.warn('[DownloadManager] SAF Export Failed (using internal storage):', e);
-                // Fallback to internal storage (audioFile)
             }
 
-            // 6. Atomic Store Update
-            // Construct the final Song object
             const newSong: Song = {
                 id: staging.id,
                 title: staging.title,
@@ -172,14 +237,13 @@ class DownloadManager {
                 dateCreated: new Date().toISOString(),
                 dateModified: new Date().toISOString(),
                 lyrics: staging.selectedLyrics ? lyricaService.parseLrc(staging.selectedLyrics, staging.duration) : [],
-                gradientId: Math.floor(Math.random() * 5).toString() // Random gradient
+                gradientId: Math.floor(Math.random() * 5).toString()
             };
 
-            updateProgress(1.0); // 100% - Complete
+            updateProgress(1.0);
             return newSong;
 
         } catch (error) {
-            // Cleanup on failure
             await FileSystem.deleteAsync(songDir, { idempotent: true });
             throw error;
         }

@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 
-export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
+export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
   return (
     <View style={styles.container}>
       <LinearGradient

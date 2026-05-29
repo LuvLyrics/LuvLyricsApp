@@ -2,7 +2,7 @@
  * Playlist CRUD Operations
  */
 
-import { getDatabase, withDbRead, withDbWrite  } from './db';
+import { withDbRead, withDbWrite } from './db';
 import { Playlist, Song } from '../types/song';
 import { getSongById } from './queries';
 

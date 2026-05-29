@@ -6,7 +6,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, Modal, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../contexts/ThemeContext';
 
 interface CustomAlertProps {
   visible: boolean;
@@ -27,17 +27,19 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
   buttons,
   onClose,
 }) => {
+  const colors = useThemeColors();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
       </Pressable>
-      
+
       <View style={styles.container}>
-        <View style={styles.alertBox}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
-          
+        <View style={[styles.alertBox, { backgroundColor: colors.card }]}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+          <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
+
           <View style={styles.buttons}>
             {buttons.map((button, index) => (
               <Pressable
@@ -82,7 +84,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   alertBox: {
-    backgroundColor: '#1C1C1E',
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -96,13 +97,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.textPrimary,
     marginBottom: 12,
     textAlign: 'center',
   },
   message: {
     fontSize: 15,
-    color: Colors.textSecondary,
     lineHeight: 22,
     textAlign: 'center',
     marginBottom: 24,
@@ -117,7 +116,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonCancel: {
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#0B1F3A',
   },
   buttonDestructive: {
     backgroundColor: '#FF453A',

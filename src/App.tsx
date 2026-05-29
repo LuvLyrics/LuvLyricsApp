@@ -4,7 +4,7 @@
 
 import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Text, Pressable } from 'react-native';
+import { View, Animated, StyleSheet, Text, Pressable } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -12,11 +12,66 @@ import { RootNavigator } from './navigation';
 import { initDatabase } from './database/db';
 import { useSongsStore } from './store/songsStore';
 import { usePlayerStore } from './store/playerStore';
-import { Colors } from './constants/colors';
+import { DarkColors } from './constants/colors';
 import { PlayerProvider } from './contexts/PlayerContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { setAudioModeAsync } from 'expo-audio';
 import * as Font from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
+import { getPreloadedData } from './services/NativeStartup';
+
+// ─── Music Equalizer Loader ───────────────────────────────────────────────────
+
+const LOADER_BARS = [
+  { initH: 16, max: 44, min: 8,  dur: 550 },
+  { initH: 36, max: 48, min: 12, dur: 420 },
+  { initH: 52, max: 52, min: 18, dur: 360 },
+  { initH: 28, max: 46, min: 10, dur: 490 },
+  { initH: 10, max: 38, min: 6,  dur: 630 },
+];
+
+const BAR_COLORS = [
+  'rgba(255,255,255,0.35)',
+  'rgba(255,255,255,0.6)',
+  '#2F8CFF',
+  'rgba(255,255,255,0.6)',
+  'rgba(255,255,255,0.35)',
+];
+
+const MusicLoader: React.FC = () => {
+  const anims = React.useRef(LOADER_BARS.map(b => new Animated.Value(b.initH))).current;
+
+  useEffect(() => {
+    const loops = LOADER_BARS.map((cfg, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(anims[i], { toValue: cfg.max, duration: cfg.dur, useNativeDriver: false }),
+          Animated.timing(anims[i], { toValue: cfg.min, duration: cfg.dur, useNativeDriver: false }),
+        ])
+      )
+    );
+    loops.forEach(l => l.start());
+    return () => loops.forEach(l => l.stop());
+  }, []);
+
+  return (
+    <View style={loaderStyles.bars}>
+      {anims.map((anim, i) => (
+        <View key={i} style={loaderStyles.barTrack}>
+          <Animated.View style={[loaderStyles.bar, { height: anim, backgroundColor: BAR_COLORS[i] }]} />
+        </View>
+      ))}
+    </View>
+  );
+};
+
+const loaderStyles = StyleSheet.create({
+  bars:     { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 56 },
+  barTrack: { height: 56, justifyContent: 'flex-end' },
+  bar:      { width: 6, borderRadius: 3 },
+});
+
+// ─── App ──────────────────────────────────────────────────────────────────────
 
 const App: React.FC = () => {
   const [isReady, setIsReady] = useState(false);
@@ -32,31 +87,46 @@ const App: React.FC = () => {
         try {
           console.log(`[APP] Initialization attempt ${4 - retries}/3...`);
 
-          // Initialize Audio Mode for background/remote controls
-          await setAudioModeAsync({
-            allowsRecording: false,
-            shouldPlayInBackground: true,
-            playsInSilentMode: true,
-            interruptionMode: 'doNotMix',
-          });
+          // Parallel: preload native data + audio mode + fonts (all while Hermes parsed the bundle)
+          const [preloaded] = await Promise.all([
+            getPreloadedData(),
+            setAudioModeAsync({
+              allowsRecording: false,
+              shouldPlayInBackground: true,
+              playsInSilentMode: true,
+              interruptionMode: 'doNotMix',
+            }),
+            Font.loadAsync(Ionicons.font),
+          ]);
 
-          // Preload Icons
-          await Font.loadAsync(Ionicons.font);
-
-          // Initialize database
+          // Open the write connection (fast — Kotlin already opened read-only above)
           await initDatabase();
-          
-          // Fetch initial songs
-          await fetchSongs();
-          
-          // Initialize Playlists & Liked Songs Cache
+
           const { usePlaylistStore } = await import('./store/playlistStore');
-          await usePlaylistStore.getState().fetchPlaylists();
-          
-          // Restore Last Played Song
-          const lastPlayed = await import('./database/queries').then(m => m.getLastPlayedSong());
-          if (lastPlayed) {
-              usePlayerStore.getState().setInitialSong(lastPlayed);
+
+          if (preloaded && preloaded.songs.length > 0) {
+            // Android fast path: data came from Kotlin preloader, no DB round-trips needed
+            useSongsStore.setState({ songs: preloaded.songs, isLoading: false });
+            if (preloaded.playlists.length > 0) {
+              const defaultPl = preloaded.playlists.find(p => p.isDefault);
+              usePlaylistStore.setState({
+                playlists: preloaded.playlists,
+                defaultPlaylistId: defaultPl?.id ?? null,
+                isLoading: false,
+              });
+              // Background: populate likedSongIds Set (heart icons) without blocking render
+              usePlaylistStore.getState().fetchPlaylists().catch(() => {});
+            }
+            if (preloaded.lastPlayedId) {
+              const last = preloaded.songs.find(s => s.id === preloaded.lastPlayedId);
+              if (last) usePlayerStore.getState().setInitialSong(last);
+            }
+          } else {
+            // iOS / first-launch fallback — existing sequential path
+            await fetchSongs();
+            await usePlaylistStore.getState().fetchPlaylists();
+            const lastPlayed = await import('./database/queries').then(m => m.getLastPlayedSong());
+            if (lastPlayed) usePlayerStore.getState().setInitialSong(lastPlayed);
           }
 
           // Start desktop bridge if previously enabled
@@ -96,13 +166,17 @@ const App: React.FC = () => {
     };
 
     initialize();
-  }, []);
+  }, [fetchSongs]);
 
   if (!isReady) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar style="light" backgroundColor={Colors.background} />
-        <ActivityIndicator size="large" color="#fff" />
+        <StatusBar style="light" backgroundColor="#000" />
+        <Ionicons name="musical-notes" size={48} color="#2F8CFF" style={{ marginBottom: 20 }} />
+        <Text style={styles.loadingTitle}>LuvLyrics</Text>
+        <Text style={styles.loadingSubtitle}>Your music, your lyrics</Text>
+        <View style={{ height: 48 }} />
+        <MusicLoader />
       </View>
     );
   }
@@ -110,7 +184,7 @@ const App: React.FC = () => {
   if (error) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar style="light" backgroundColor={Colors.background} />
+        <StatusBar style="light" backgroundColor={DarkColors.background} />
         <Text style={styles.errorText}>⚠️ Initialization Failed</Text>
         <Text style={styles.errorMessage}>{error}</Text>
         <Pressable 
@@ -131,10 +205,12 @@ const App: React.FC = () => {
   return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
-        <StatusBar style="light" />
-        <PlayerProvider>
-          <RootNavigator />
-        </PlayerProvider>
+        <ThemeProvider>
+          <StatusBar style="light" />
+          <PlayerProvider>
+            <RootNavigator />
+          </PlayerProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -144,14 +220,26 @@ const App: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: DarkColors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: '#000',
     padding: 20,
+  },
+  loadingTitle: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: -0.8,
+    marginBottom: 6,
+  },
+  loadingSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.4)',
+    letterSpacing: 0.2,
   },
   errorText: {
     fontSize: 20,
@@ -162,7 +250,7 @@ const styles = StyleSheet.create({
   },
   errorMessage: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: DarkColors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 20,

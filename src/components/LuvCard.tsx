@@ -68,6 +68,7 @@ const EqBars = ({ active }: { active: boolean }) => {
       h2.value = withTiming(3, { duration: 250 });
       h3.value = withTiming(3, { duration: 250 });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   const s1 = useAnimatedStyle(() => ({ height: h1.value }));
@@ -106,11 +107,12 @@ const HeartParticle = ({ angle, trigger }: { angle: number; trigger: number }) =
       withSpring(1.6, { damping: 8, stiffness: 280 }),
       withTiming(0.3, { duration: 300 })
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger]);
 
   const style = useAnimatedStyle(() => ({
     opacity: op.value,
-    transform: [{ translateX: tx.value, translateY: ty.value, scale: sc.value }] as any,
+    transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: sc.value }] as any,
   }));
 
   return (
@@ -152,7 +154,7 @@ const ActionBtn = ({
       withSpring(1, { damping: 8, stiffness: 300 })
     );
     onPress();
-  }, [onPress]);
+  }, [onPress, sc]);
 
   return (
     <Pressable onPress={disabled ? undefined : handlePress} disabled={disabled}>
@@ -186,6 +188,7 @@ const LuvsProgressController = ({
           ? status.positionMillis / status.durationMillis : 0;
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
 
   const fillStyle = useAnimatedStyle(() => ({
@@ -199,7 +202,7 @@ const LuvsProgressController = ({
       <View style={[styles.topBar, { top: insetTop + 10 }]}>
         <Animated.View style={[styles.topBarFill, fillStyle]} />
       </View>
-      <View style={[styles.scrubberWrap, { bottom: insetBottom + 140 }]}>
+      <View style={[styles.scrubberWrap, { bottom: insetBottom + 78 }]}>
         <TimelineScrubber
           currentTime={position}
           duration={duration}
@@ -263,7 +266,8 @@ export const LuvCard = React.memo<LuvCardProps>(
         glowSc.value = withTiming(1, { duration: 500 });
         glowOp.value = withTiming(0.12, { duration: 500 });
       }
-    }, [isPlaying, isActive]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, isActive]);
 
     useEffect(() => {
       if (isLiked) {
@@ -272,7 +276,8 @@ export const LuvCard = React.memo<LuvCardProps>(
           withSpring(1, { damping: 8, stiffness: 300 })
         );
       }
-    }, [isLiked]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLiked]);
 
     useEffect(() => {
       if (isActive && song.highResArt) {
@@ -293,7 +298,8 @@ export const LuvCard = React.memo<LuvCardProps>(
         withTiming(1, { duration: 60 }),
         withTiming(0, { duration: 580, easing: Easing.out(Easing.quad) })
       );
-    }, [onPlayPause]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onPlayPause]);
 
     const handleLike = useCallback(() => {
       onLike();
@@ -465,6 +471,7 @@ const styles = StyleSheet.create({
   },
   uiOn: { opacity: 1 },
   uiOff: { opacity: 0 },
+  particle: { position: 'absolute' },
 
   artGlow: {
     position: 'absolute',

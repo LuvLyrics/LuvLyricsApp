@@ -13,8 +13,8 @@ const cleanLyricText = (text) => {
     if (!text) return '';
     
     // 1. Temporarily protect valid structural tags
-    let processed = text.replace(/\[(instrumental|verse|chorus|bridge|intro|outro|solo|hook|break).*?\]/gi, (match) => {
-        return `__KEEP_${match.replace(/[\[\]\s]/g, '')}__`; 
+    let processed = text.replace(/\[(instrumental|verse|chorus|bridge|intro|outro|solo|hook|break).*?]/gi, (match) => {
+        return `__KEEP_${match.replace(/[[\]\s]/g, '')}__`; 
     });
 
     // 2. Remove ALL other brackets/parens and non-word chars
@@ -38,16 +38,10 @@ function parseRealWhisperJSON(jsonData) {
     
     if (jsonData.segments && Array.isArray(jsonData.segments)) {
       jsonData.segments.forEach((segment) => {
-        const words = [];
-        
         // Python Whisper JSON might not have word-level timestamps unless requested
         // But for this test, we are mainly checking the TEXT cleaning.
         // If words exist, we process them.
-        if (segment.words) {
-             // ... word logic ... 
-             // (Skipping for now as default python cli might not give words without extra flags, 
-             //  but we can check segment text)
-        }
+
         
         // 2. Process Segment text
         const rawSegmentText = (segment.text || '').trim();

@@ -1,3 +1,4 @@
+/* eslint-disable no-bitwise */
 /**
  * DesktopBridgeService.ts
  *
@@ -653,7 +654,7 @@ class DesktopBridgeService {
     if (!client.handshaken) return;
     try {
       client.socket.write(encodeFrame(msg));
-    } catch (e) {
+    } catch {
       // socket may have closed
     }
   }
@@ -865,7 +866,7 @@ class DesktopBridgeService {
       socket.write(Buffer.from(headers, 'utf8'));
       socket.write(bytes);
       socket.destroy();
-    } catch (e) {
+    } catch {
       socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
       socket.destroy();
     }
@@ -1195,7 +1196,7 @@ class DesktopBridgeService {
           break;
 
         case 'NEXT':
-          playerStore.nextInPlaylist();
+          playerStore.nextInPlaylist().catch(() => {});
           break;
 
         case 'PREV':
@@ -1247,7 +1248,6 @@ class DesktopBridgeService {
     if (!clientId) return;
     const client = this.clients.get(clientId);
     if (!client) return;
-    const playerStore = usePlayerStore.getState();
     this.sendToClient(
       client,
       JSON.stringify({

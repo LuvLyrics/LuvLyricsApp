@@ -1,4 +1,4 @@
-const fs = require('fs');
+
 
 // ============================================================================
 // PART 1: MOCK DATA (High Fidelity from Gracie Abrams "I Love You, I'm Sorry")
@@ -435,7 +435,7 @@ function runTest() {
     const alignedLyrics = [];
     let searchStartTimestamp = 0.0;
     let searchStartIndex = 0;
-    let successfulMatches = 0;
+
 
     for (let i = 0; i < LYRIC_LINES.length; i++) {
         const line = LYRIC_LINES[i];
@@ -469,7 +469,6 @@ function runTest() {
             }
             searchStartIndex = specificWordIndex;
             
-            successfulMatches++;
             alignedLyrics.push({ 
                 text: line, 
                 timestamp: match.timestamp, 

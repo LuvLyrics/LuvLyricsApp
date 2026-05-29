@@ -12,7 +12,7 @@ function parseLRC(lrcContent) {
   lrcContent.split('\n').forEach(line => {
     const match = line.match(regex);
     if (match) {
-      const minutes = parseInt(match[1]);
+      const minutes = parseInt(match[1], 10);
       const seconds = parseFloat(match[2]);
       const text = match[3].trim();
       if (text) {
@@ -96,8 +96,8 @@ const cleanLyricText = (text) => {
     // 1. Temporarily protect valid structural tags
     // We want to keep [Instrumental], [Verse], [Chorus], [Bridge], [Intro], [Outro], [Solo], [Hook]
     // Case-insensitive match for these specific tags
-    let processed = text.replace(/\[(instrumental|verse|chorus|bridge|intro|outro|solo|hook|break).*?\]/gi, (match) => {
-        return `__KEEP_${match.replace(/[\[\]\s]/g, '')}__`; // e.g. __KEEP_Instrumental__
+    let processed = text.replace(/\[(instrumental|verse|chorus|bridge|intro|outro|solo|hook|break).*?]/gi, (match) => {
+        return `__KEEP_${match.replace(/[[\]\s]/g, '')}__`; // e.g. __KEEP_Instrumental__
     });
 
     // 2. Remove ALL other brackets/parens and non-word chars (standard cleaning)
@@ -200,7 +200,7 @@ async function runTest() {
   let truthText;
   try {
     truthText = fs.readFileSync(truthPath, 'utf-8');
-  } catch (e) {
+  } catch {
       console.error('Files not found!');
       process.exit(1);
   }
@@ -215,7 +215,7 @@ async function runTest() {
   
   // INSPECTION
   console.log('--- OUTPUT INSPECTION ---');
-  parsedSegments.forEach((s, i) => {
+  parsedSegments.forEach((s) => {
       console.log(`[${s.start.toFixed(2)}] ${s.text}`);
   });
   

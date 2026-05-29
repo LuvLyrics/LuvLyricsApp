@@ -17,8 +17,6 @@ import {
   ActivityIndicator,
   TextInput,
   Dimensions,
-  Platform,
-  Vibration,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -39,13 +37,17 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../contexts/ThemeContext';
 import { Song } from '../types/song';
-import { getGradientForSong } from '../constants/gradients';
+import { getGradientForSong, getGradientColors } from '../constants/gradients';
+import { useDailyStatsStore } from '../store/dailyStatsStore';
+import { useSongsStore } from '../store/songsStore';
+import { AuroraHeader } from '../components/AuroraHeader';
 import { usePlayer } from '../contexts/PlayerContext';
 import { usePlayerStore, playerControls } from '../store/playerStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { usePositionStore } from '../store/positionStore';
-import { usePlaylistStore } from '../store/playlistStore'; // Assuming this store exists or is used
+// import { usePlaylistStore } from '../store/playlistStore'; // Currently unused
 import * as playlistQueries from '../database/playlistQueries';
 import { PlaylistItem } from '../components/PlaylistItem';
 import { CustomMenu } from '../components/CustomMenu';
@@ -54,6 +56,7 @@ import TimelineScrubber from '../components/TimelineScrubber';
 import { ModernDeleteModal } from '../components/ModernDeleteModal';
 import { Toast } from '../components/Toast';
 import { useLyricsScanQueueStore } from '../store/lyricsScanQueueStore';
+import { useSortedSongs } from '../hooks/useSortedSongs';
 import { songCanUpgradeToSyncedLyrics } from '../utils/lyricsState';
 
 type PlaylistDetailRouteProp = RouteProp<
@@ -67,6 +70,7 @@ const AnimatedDraggableFlatList = Animated.createAnimatedComponent(DraggableFlat
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList) as unknown as React.FC<any>;
 
 export const PlaylistDetailScreen: React.FC = () => {
+  const colors = useThemeColors();
   const route = useRoute<PlaylistDetailRouteProp>();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -96,6 +100,70 @@ export const PlaylistDetailScreen: React.FC = () => {
   const duration = usePositionStore(state => state.duration);
   
   const activeIsPlaying = currentPlaylistId === playlistId;
+
+
+  const libraryBackgroundMode = useSettingsStore(state => state.libraryBackgroundMode);
+  const applyThemeToOtherPages = useSettingsStore(state => state.applyThemeToOtherPages);
+  const isSolidBg = libraryBackgroundMode === 'purest-black'
+    || libraryBackgroundMode === 'grey'
+    || libraryBackgroundMode === 'theme-subtle'
+    || libraryBackgroundMode === 'black'
+    || libraryBackgroundMode === 'theme-blue';
+  const playerCurrentCover = usePlayerStore(state => state.currentSong?.coverImageUri);
+  const playerCurrentGradient = usePlayerStore(state => state.currentSong?.gradientId);
+  const getSong = useSongsStore(state => state.getSong);
+  const allSongsStore = useSongsStore(state => state.songs);
+
+  const [activeThemeColors, setActiveThemeColors] = useState<string[] | undefined>(undefined);
+  const [activeImageUri, setActiveImageUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!applyThemeToOtherPages) {
+      setActiveThemeColors(undefined);
+      setActiveImageUri(null);
+      return;
+    }
+    const updateTheme = async () => {
+      let themeColors: string[] | undefined;
+      let image: string | null = null;
+      if (libraryBackgroundMode === 'current') {
+        if (currentSongId) {
+          image = playerCurrentCover || null;
+          if (!image && playerCurrentGradient) {
+            themeColors = playerCurrentGradient === 'dynamic' ? ['#f7971e', '#ffd200', '#ff6b35'] : getGradientColors(playerCurrentGradient);
+          }
+        }
+      } else if (libraryBackgroundMode === 'daily') {
+        const topId = useDailyStatsStore.getState().getTopSongOfYesterday() || useDailyStatsStore.getState().getTopSongOfToday();
+        if (topId) {
+          const song = allSongsStore.find(s => s.id === topId) || await getSong(topId);
+          if (song) {
+            image = song.coverImageUri || null;
+            if (!image && song.gradientId) {
+              themeColors = song.gradientId === 'dynamic' ? ['#f7971e', '#ffd200', '#ff6b35'] : getGradientColors(song.gradientId);
+            }
+          }
+        }
+      } else if (libraryBackgroundMode === 'black') {
+        themeColors = ['#050505', '#050505', '#050505'];
+        image = null;
+      } else if (libraryBackgroundMode === 'purest-black') {
+        themeColors = ['#000000', '#000000', '#000000'];
+        image = null;
+      } else if (libraryBackgroundMode === 'grey') {
+        themeColors = ['#0D0D0D', '#181818', '#0D0D0D'];
+        image = null;
+      } else if (libraryBackgroundMode === 'theme-subtle') {
+        themeColors = ['#0E1722', '#1E2A3A', '#0E1722'];
+        image = null;
+      } else if (libraryBackgroundMode === 'theme-blue') {
+        themeColors = ['#0A1628', '#1A3A6B', '#2F8CFF'];
+        image = null;
+      }
+      setActiveThemeColors(themeColors); setActiveImageUri(image);
+    };
+    updateTheme();
+  }, [applyThemeToOtherPages, libraryBackgroundMode, currentSongId, playerCurrentCover, playerCurrentGradient, allSongsStore, allSongsStore.length, getSong]);
 
   // Scan Queue Logic
   const scanQueue = useLyricsScanQueueStore(state => state.queue);
@@ -271,50 +339,7 @@ export const PlaylistDetailScreen: React.FC = () => {
     }, [loadData])
   );
 
-  /* Sort Logic applied to Filtered List */
-  const filteredSongs = useMemo(() => {
-    let result = [...songs];
-    
-    // 1. Filter
-    if (searchQuery) {
-        const lower = searchQuery.toLowerCase();
-        result = result.filter(
-          (s) =>
-            s.title.toLowerCase().includes(lower) ||
-            s.artist?.toLowerCase().includes(lower)
-        );
-    }
-    
-    // 2. Sort
-    if (sortOption !== 'custom') {
-        result.sort((a, b) => {
-            let valA: string | number = '';
-            let valB: string | number = '';
-            
-            switch (sortOption) {
-                case 'title':
-                    valA = a.title.toLowerCase();
-                    valB = b.title.toLowerCase();
-                    break;
-                case 'artist':
-                    valA = (a.artist || '').toLowerCase();
-                    valB = (b.artist || '').toLowerCase();
-                    break;
-                case 'date':
-                    // Use dateCreated for "Recently Uploaded"
-                    valA = a.dateCreated ? new Date(a.dateCreated).getTime() : 0;
-                    valB = b.dateCreated ? new Date(b.dateCreated).getTime() : 0;
-                    break;
-            }
-            
-            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-            return 0;
-        });
-    }
-    
-    return result;
-  }, [songs, searchQuery, sortOption, sortDirection]);
+  const filteredSongs = useSortedSongs(songs, searchQuery, sortOption, sortDirection);
 
   // Update Queue when Sort Changes?
   // Only if we are CURRENTLY playing this playlist.
@@ -354,19 +379,19 @@ export const PlaylistDetailScreen: React.FC = () => {
 
   // Trigger animation when active song changes
   useEffect(() => {
-    let colors: string[];
+    let gradientColors: string[];
     if (activeSongInPlaylist) {
-        colors = getGradientForSong(activeSongInPlaylist);
+        gradientColors = getGradientForSong(activeSongInPlaylist);
     } else if (songs[0]) {
-        colors = getGradientForSong(songs[0]);
+        gradientColors = getGradientForSong(songs[0]);
     } else {
-        colors = ['#444', '#111'];
+        gradientColors = ['#444', '#111'];
     }
     
     // Animate to new colors
-    bgColorTop.value = withTiming(colors[0], { duration: 500 });
+    bgColorTop.value = withTiming(gradientColors[0], { duration: 500 });
     // Assuming 2nd color is bottom, or last color if array > 2
-    bgColorBottom.value = withTiming(colors[colors.length - 1], { duration: 500 });
+    bgColorBottom.value = withTiming(gradientColors[gradientColors.length - 1], { duration: 500 });
   }, [activeSongInPlaylist, songs, bgColorTop, bgColorBottom]);
   
   // Animated Gradient components removed as unused in favor of static memoized gradient
@@ -597,13 +622,13 @@ export const PlaylistDetailScreen: React.FC = () => {
                     }}
                 >
                     <Ionicons 
-                        name={sortOption === 'custom' ? "filter" : "filter-circle"} 
-                        size={16} 
-                        color={sortOption === 'custom' ? "rgba(255,255,255,0.6)" : Colors.primary} 
+                        name={sortOption === 'custom' ? "filter" : "filter-circle"}
+                        size={16}
+                        color={sortOption === 'custom' ? "rgba(255,255,255,0.6)" : colors.primary}
                     />
                     <Text style={[
-                        styles.sortButtonText, 
-                        sortOption !== 'custom' && { color: Colors.primary }
+                        styles.sortButtonText,
+                        sortOption !== 'custom' && { color: colors.primary }
                     ]}>
                         {getSortLabel()}
                     </Text>
@@ -705,28 +730,34 @@ export const PlaylistDetailScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Dynamic Background: Blurred Cover Art (Matches Dynamic Island) */}
-      <Animated.View 
-        style={[StyleSheet.absoluteFill, animatedGradientStyle, { backgroundColor: '#000', height: 500 }]}
-        pointerEvents="none" 
-      >
-         {/* 1. The Blurred Image */}
-         {headerImageUri && (
-             <Image 
-                source={{ uri: headerImageUri }}
-                style={[StyleSheet.absoluteFill, { opacity: 0.6 }]}
-                blurRadius={90}
-                resizeMode="cover"
-             />
-         )}
-         
-         {/* 2. Fade to Black Overlay */}
-         <LinearGradient
-            colors={['transparent', '#000'] as const}
-            style={StyleSheet.absoluteFill}
-            locations={[0.2, 1]} 
-         />
-      </Animated.View>
+      {applyThemeToOtherPages ? (
+        <Animated.View style={[StyleSheet.absoluteFill, animatedGradientStyle]} pointerEvents="none">
+          <AuroraHeader palette="library" colors={activeThemeColors} imageUri={activeImageUri} isSolid={isSolidBg} />
+        </Animated.View>
+      ) : (
+        /* Dynamic Background: Blurred Cover Art (Matches Dynamic Island) */
+        <Animated.View 
+          style={[StyleSheet.absoluteFill, animatedGradientStyle, { backgroundColor: '#000', height: 500 }]}
+          pointerEvents="none" 
+        >
+           {/* 1. The Blurred Image */}
+           {headerImageUri && (
+               <Image 
+                  source={{ uri: headerImageUri }}
+                  style={[StyleSheet.absoluteFill, { opacity: 0.6 }]}
+                  blurRadius={90}
+                  resizeMode="cover"
+               />
+           )}
+           
+           {/* 2. Fade to Black Overlay */}
+           <LinearGradient
+              colors={['transparent', '#000'] as const}
+              style={StyleSheet.absoluteFill}
+              locations={[0.2, 1]} 
+           />
+        </Animated.View>
+      )}
 
       {/* Sticky Header (Absolute) */}
       <Animated.View style={[styles.stickyHeader, { height: 50 + insets.top, paddingTop: insets.top }, headerStyle]}>
@@ -802,7 +833,7 @@ export const PlaylistDetailScreen: React.FC = () => {
             renderItem={({ item, index }: { item: Song, index: number }) => renderItem({ item, getIndex: () => index, drag: undefined, isActive: false } as any)}
             onScroll={scrollHandler}
             scrollEventThrottle={1}
-            contentContainerStyle={{ paddingBottom: 150, paddingTop: 50 + insets.top, paddingHorizontal: 16 }}
+            contentContainerStyle={{ paddingBottom: 150, paddingTop: 50 + insets.top }}
             ListHeaderComponent={renderHeader()}
         />
       ) : (
@@ -814,7 +845,7 @@ export const PlaylistDetailScreen: React.FC = () => {
         renderItem={renderItem}
         onScroll={scrollHandler}
         scrollEventThrottle={1} // Use 1 for maximum update frequency
-        contentContainerStyle={{ paddingBottom: 150, paddingTop: 50 + insets.top, paddingHorizontal: 16 }} 
+        contentContainerStyle={{ paddingBottom: 150, paddingTop: 50 + insets.top }} 
         ListHeaderComponent={renderHeader()}
       />
       )}
@@ -945,7 +976,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeButton: {
-      backgroundColor: Colors.primary || '#1DB954',
+      backgroundColor: '#1DB954',
   },
   listHeader: {
     alignItems: 'center',
@@ -982,7 +1013,7 @@ const styles = StyleSheet.create({
       position: 'absolute',
       bottom: 8,
       right: 8,
-      backgroundColor: Colors.primary,
+      backgroundColor: '#1DB954',
       width: 32,
       height: 32,
       borderRadius: 16,

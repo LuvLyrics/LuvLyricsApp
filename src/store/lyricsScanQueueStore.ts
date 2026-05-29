@@ -117,7 +117,8 @@ export const useLyricsScanQueueStore = create<LyricsScanQueueState>((set, get) =
   removeFromQueue: (songId: string) => {
     cancelPruneTimer(songId);
     set(state => {
-      const { [songId]: _, ...rest } = state.queue;
+      const rest = { ...state.queue };
+      delete rest[songId];
       return { queue: rest };
     });
   },

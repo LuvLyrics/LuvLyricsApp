@@ -100,7 +100,7 @@ export const loadSampleData = async (insertFn: (song: Song) => Promise<void>): P
     try {
       await insertFn(song);
       count++;
-    } catch (error) {
+    } catch {
       console.warn(`Sample song "${song.title}" may already exist`);
     }
   }

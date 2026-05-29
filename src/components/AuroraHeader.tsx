@@ -9,7 +9,7 @@
 
 import React, { useRef } from 'react';
 import { View, StyleSheet, Dimensions, Image as RNImage, Animated } from 'react-native';
-import { Canvas, Circle, Rect, Oval, BlurMask, vec, Group } from '@shopify/react-native-skia';
+import { Canvas, Rect, Oval, BlurMask, vec, Group } from '@shopify/react-native-skia';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSharedValue, withRepeat, withTiming, useDerivedValue, Easing } from 'react-native-reanimated';
 
@@ -22,7 +22,7 @@ const AURORA_HEIGHT = SCREEN_HEIGHT * 1.0; // Increased to full height per user 
 const COLOR_1 = '#EA7980'; // Saturated but slightly softer Peach/Rose
 const COLOR_2 = '#1D728F'; // Saturated Deep Teal Blue
 const COLOR_3 = '#155252'; // Richer Dark Evergreen
-const BASE_DARK = '#000000';
+const BASE_DARK = '#020A16';
 
 export type AuroraPalette = 'library' | 'search' | 'settings' | 'nowPlaying';
 
@@ -31,14 +31,16 @@ interface AuroraBackgroundProps {
   colors?: string[]; // Custom colors override palette
   imageUri?: string | null; // Optional blurred image background
   animated?: boolean; // Toggle animation
+  isSolid?: boolean; // Toggle solid rendering with no gradients/blobs
 }
 
 const AuroraCanvas: React.FC<{
   c1: string; c2: string; c3: string;
   t1: any; t2: any; t3: any;
-}> = ({ c1, c2, c3, t1, t2, t3 }) => (
+  baseColor: string;
+}> = ({ c1, c2, c3, t1, t2, t3, baseColor }) => (
   <Canvas style={StyleSheet.absoluteFill}>
-    <Rect x={0} y={0} width={SCREEN_WIDTH} height={AURORA_HEIGHT} color={BASE_DARK} />
+    <Rect x={0} y={0} width={SCREEN_WIDTH} height={AURORA_HEIGHT} color={baseColor} />
 
     <Group transform={t2} origin={vec(SCREEN_WIDTH * 0.2, AURORA_HEIGHT * 0.3)}>
       <Oval
@@ -85,6 +87,7 @@ export const AuroraHeader: React.FC<AuroraBackgroundProps> = ({
   colors,
   imageUri,
   animated = false,
+  isSolid = false,
 }) => {
   const rotation = useSharedValue(0);
   const scale = useSharedValue(1);
@@ -97,6 +100,7 @@ export const AuroraHeader: React.FC<AuroraBackgroundProps> = ({
       rotation.value = 0;
       scale.value = 1;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animated]);
 
   const t1 = useDerivedValue(() => [{ rotate: 25 + (rotation.value * 0.5) }, { scale: scale.value }]);
@@ -106,6 +110,11 @@ export const AuroraHeader: React.FC<AuroraBackgroundProps> = ({
   const activeColors = colors && colors.length >= 2
     ? [colors[0], colors[1], colors[2] || colors[0]]
     : [COLOR_1, COLOR_2, COLOR_3];
+
+  // Base color: use the first custom color as backing when colors are provided,
+  // so solid modes (Spotify Grey, purest black, dark navy, etc.) don't bleed BASE_DARK's blue tint.
+  // Falls back to BASE_DARK only for the default aurora palette.
+  const baseColor = (colors && colors.length >= 1) ? colors[0] : BASE_DARK;
 
   // Cross-fade between previous and new colors
   const prevColorsRef = useRef<string[]>(activeColors);
@@ -128,20 +137,27 @@ export const AuroraHeader: React.FC<AuroraBackgroundProps> = ({
         }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colorsKey]);
 
   const [pc1, pc2, pc3] = prevColorsRef.current;
   const [c1, c2, c3] = activeColors;
 
+  if (isSolid) {
+    return (
+      <View style={[styles.container, { backgroundColor: baseColor }]} pointerEvents="none" />
+    );
+  }
+
   return (
-    <View style={styles.container} pointerEvents="none">
-      <View style={styles.auroraArea}>
+    <View style={[styles.container, { backgroundColor: baseColor }]} pointerEvents="none">
+      <View style={[styles.auroraArea, { backgroundColor: baseColor }]}>
         {/* Previous colors layer — always underneath */}
-        <AuroraCanvas c1={pc1} c2={pc2} c3={pc3} t1={t1} t2={t2} t3={t3} />
+        <AuroraCanvas c1={pc1} c2={pc2} c3={pc3} t1={t1} t2={t2} t3={t3} baseColor={baseColor} />
 
         {/* New colors layer — fades in on top */}
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
-          <AuroraCanvas c1={c1} c2={c2} c3={c3} t1={t1} t2={t2} t3={t3} />
+          <AuroraCanvas c1={c1} c2={c2} c3={c3} t1={t1} t2={t2} t3={t3} baseColor={baseColor} />
         </Animated.View>
 
         {imageUri && (
@@ -154,13 +170,13 @@ export const AuroraHeader: React.FC<AuroraBackgroundProps> = ({
         )}
 
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.6)', BASE_DARK]}
+          colors={['transparent', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.6)', baseColor]}
           locations={[0.1, 0.45, 0.8, 1]}
           style={styles.fadeToBlack}
         />
       </View>
 
-      <View style={styles.darkArea} />
+      <View style={[styles.darkArea, { backgroundColor: baseColor }]} />
     </View>
   );
 };

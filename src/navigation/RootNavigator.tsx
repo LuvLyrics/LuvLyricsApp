@@ -8,7 +8,7 @@ import { View } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
-import { Colors } from '../constants/colors';
+// import { Colors } from '../constants/colors'; // Currently unused
 
 // Import navigators and screens
 import TabNavigator from './TabNavigator';

@@ -187,11 +187,13 @@ export const YoutubeBrowserScreen = ({ navigation }: any) => {
   const showFab = useCallback(() => {
     fabScale.value = withSpring(1, { damping: 12, stiffness: 120 });
     fabTranslateY.value = withSpring(0, { damping: 14, stiffness: 100 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const hideFab = useCallback(() => {
     fabScale.value = withTiming(0, { duration: 200 });
     fabTranslateY.value = withTiming(100, { duration: 200 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ─── Navigation State Handler ──────────────────────────────
@@ -240,7 +242,7 @@ export const YoutubeBrowserScreen = ({ navigation }: any) => {
          // Silent warning
          console.log(`[YTBrowser] Extraction err: ${data.error}`);
       }
-    } catch (e) {
+    } catch {
       // Ignore non-JSON messages
     }
   }, [showFab]);

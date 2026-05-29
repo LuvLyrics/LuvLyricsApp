@@ -16,7 +16,7 @@ function convertTranscriptionToLyrics(transcription) {
     // Sort by start time just in case
     const sortedSegments = transcription.sort((a, b) => a.start - b.start);
     
-    sortedSegments.forEach((segment, index) => {
+    sortedSegments.forEach((segment) => {
       const text = segment.text.trim();
       if (!text) return; // Skip empty segments
       

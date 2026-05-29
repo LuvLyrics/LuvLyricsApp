@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../contexts/ThemeContext';
 import { BlurView } from 'expo-blur';
 
 interface AIGeneratorModalProps {
@@ -25,7 +25,7 @@ interface AIGeneratorModalProps {
   onApply: (text: string) => void;
 }
 
-const AI_PROMPT = `I need you to add timestamps to these lyrics. 
+const AI_PROMPT = `I need you to add timestamps to these lyrics.
 Format requirements:
 1. Use [mm:ss] format at the start of each line
 2. If there are instrumental breaks, mark them with [mm:ss] [Instrumental]
@@ -40,6 +40,7 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({
   onClose,
   onApply,
 }) => {
+  const colors = useThemeColors();
   const [pastedText, setPastedText] = useState('');
 
   const handleCopyPrompt = async () => {
@@ -67,9 +68,9 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({
       <BlurView intensity={20} tint="dark" style={styles.container}>
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.title}>AI Timestamp Helper</Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>AI Timestamp Helper</Text>
             <Pressable onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.textPrimary} />
+              <Ionicons name="close" size={24} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -77,10 +78,12 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({
             {/* Step 1 */}
             <View style={styles.step}>
               <View style={styles.stepHeader}>
-                <View style={styles.stepNumber}><Text style={styles.stepNumberText}>1</Text></View>
-                <Text style={styles.stepTitle}>Copy Prompt</Text>
+                <View style={[styles.stepNumber, { backgroundColor: colors.accent }]}>
+                  <Text style={styles.stepNumberText}>1</Text>
+                </View>
+                <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Copy Prompt</Text>
               </View>
-              <Text style={styles.stepDesc}>
+              <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
                 Copy this prompt and paste it into ChatGPT with your lyrics to get perfect timestamps.
               </Text>
               <Pressable style={styles.copyButton} onPress={handleCopyPrompt}>
@@ -92,17 +95,19 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({
             {/* Step 2 */}
             <View style={styles.step}>
               <View style={styles.stepHeader}>
-                <View style={styles.stepNumber}><Text style={styles.stepNumberText}>2</Text></View>
-                <Text style={styles.stepTitle}>Paste Result</Text>
+                <View style={[styles.stepNumber, { backgroundColor: colors.accent }]}>
+                  <Text style={styles.stepNumberText}>2</Text>
+                </View>
+                <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Paste Result</Text>
               </View>
-              <Text style={styles.stepDesc}>
+              <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
                 Paste the timestamped lyrics from ChatGPT here:
               </Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.textPrimary }]}
                 multiline
                 placeholder="[00:12] Hello world..."
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={pastedText}
                 onChangeText={setPastedText}
                 textAlignVertical="top"
@@ -111,7 +116,7 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({
           </ScrollView>
 
           <View style={styles.footer}>
-            <Pressable style={styles.applyButton} onPress={handleApply}>
+            <Pressable style={[styles.applyButton, { backgroundColor: colors.accent }]} onPress={handleApply}>
               <Text style={styles.applyButtonText}>Apply to Editor</Text>
             </Pressable>
           </View>
@@ -145,7 +150,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.textPrimary,
   },
   closeButton: {
     padding: 4,
@@ -166,7 +170,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -178,11 +181,9 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.textPrimary,
   },
   stepDesc: {
     fontSize: 14,
-    color: Colors.textSecondary,
     marginBottom: 16,
     lineHeight: 20,
   },
@@ -205,7 +206,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     height: 200,
-    color: Colors.textPrimary,
     fontSize: 14,
     borderWidth: 1,
     borderColor: '#333',
@@ -214,7 +214,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   applyButton: {
-    backgroundColor: Colors.accent,
     padding: 16,
     borderRadius: 16,
     alignItems: 'center',

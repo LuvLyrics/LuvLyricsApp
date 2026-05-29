@@ -94,7 +94,7 @@ class LyricaService {
         let errorText = '';
         try {
             errorText = await response.text();
-        } catch (e) {
+        } catch {
             errorText = 'Read failed';
         }
         
@@ -144,7 +144,7 @@ class LyricaService {
                   const timestamp = `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}]`;
                   return `${timestamp} ${line.text || ''}`;
                }).join('\n');
-           } catch (e) {
+           } catch {
                finalLyrics = ''; 
            }
         } else if (typeof finalLyrics === 'string' && (finalLyrics.trim().startsWith('[') || finalLyrics.trim().startsWith('{'))) {
@@ -160,7 +160,7 @@ class LyricaService {
                       return `${timestamp} ${line.text || ''}`;
                    }).join('\n');
               }
-           } catch (e) {
+           } catch {
                if (finalLyrics.trim().startsWith('[{"')) {
                    finalLyrics = null; 
                }

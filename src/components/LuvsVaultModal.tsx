@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     aspectRatio: 0.8,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#06152B',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
   },

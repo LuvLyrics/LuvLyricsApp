@@ -44,3 +44,8 @@ GoogleService-Info.plist
 # generated native folders
 /ios
 /android
+
+# Allow tracking custom native source code and configurations
+!/android/app/src/main/java/com/lyricflow/app/
+!/android/app/build.gradle
+!/android/app/src/main/AndroidManifest.xml

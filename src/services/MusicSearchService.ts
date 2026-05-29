@@ -1,4 +1,4 @@
-import { Alert } from 'react-native';
+// import { Alert } from 'react-native'; // Currently unused
 
 export interface Song {
   id: string;
@@ -54,7 +54,7 @@ export const MusicSearchService = {
           downloadUrl: bestUrl,
           hasLyrics: item.hasLyrics === 'true' || item.hasLyrics === true,
           album: item.album?.name || '',
-          duration: parseInt(item.duration || '0'),
+          duration: parseInt(item.duration || '0', 10),
         };
       });
 

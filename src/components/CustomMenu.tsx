@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   groupContainer: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#06152B',
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -178,10 +178,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#06152B',
   },
   optionPressed: {
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#0B1F3A',
   },
   optionLabel: {
     fontSize: 17,
@@ -198,13 +198,13 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   cancelButton: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#06152B',
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
   },
   cancelPressed: {
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#0B1F3A',
   },
   cancelLabel: {
     fontSize: 17,

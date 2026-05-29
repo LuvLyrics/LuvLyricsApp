@@ -1,4 +1,5 @@
 {
   "compilerOptions": {},
+  "exclude": ["prats"],
   "extends": "expo/tsconfig.base"
 }

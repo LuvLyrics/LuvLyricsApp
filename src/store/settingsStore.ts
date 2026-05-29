@@ -29,10 +29,13 @@ interface SettingsState {
   miniPlayerStyle: 'bar' | 'island'; // New setting
   navBarStyle: 'classic' | 'modern-pill'; // NEW: Navbar style
   autoHideControls: boolean; // Toggle for hiding controls after 3.5s
-  libraryBackgroundMode: 'daily' | 'aurora' | 'current' | 'black' | 'grey'; // New setting for dynamic background
-  animateBackground: boolean; // Toggle for background movement
+  libraryBackgroundMode: 'daily' | 'aurora' | 'current' | 'black' | 'grey' | 'theme-blue' | 'purest-black' | 'theme-subtle';
+  islandBgMode: 'album-art' | 'song-gradient' | 'aurora' | 'purest-black' | 'grey' | 'theme-subtle' | 'theme-blue';
+  classicBarBgMode: 'album-art' | 'song-gradient' | 'aurora' | 'purest-black' | 'grey' | 'theme-subtle' | 'theme-blue';
+  animateBackground: boolean;
   libraryFocusMode: boolean; // Toggle for "Focus Mode" (Black Background)
   showPerformanceHUD: boolean; // Toggle for FPS counter
+  applyThemeToOtherPages: boolean; // Option to apply theme to playlists and settings pages
   
   // Library
   defaultView: ViewMode;
@@ -58,7 +61,9 @@ interface SettingsState {
   setMiniPlayerStyle: (style: 'bar' | 'island') => void; // New action
   setNavBarStyle: (style: 'classic' | 'modern-pill') => void; // NEW: Navbar action
   setAutoHideControls: (enabled: boolean) => void;
-  setLibraryBackgroundMode: (mode: 'daily' | 'aurora' | 'current' | 'black' | 'grey') => void;
+  setLibraryBackgroundMode: (mode: 'daily' | 'aurora' | 'current' | 'black' | 'grey' | 'theme-blue' | 'purest-black' | 'theme-subtle') => void;
+  setIslandBgMode: (mode: 'album-art' | 'song-gradient' | 'aurora' | 'purest-black' | 'grey' | 'theme-subtle' | 'theme-blue') => void;
+  setClassicBarBgMode: (mode: 'album-art' | 'song-gradient' | 'aurora' | 'purest-black' | 'grey' | 'theme-subtle' | 'theme-blue') => void;
   setAnimateBackground: (enabled: boolean) => void;
   setLibraryFocusMode: (enabled: boolean) => void;
   setShowPerformanceHUD: (enabled: boolean) => void;
@@ -69,6 +74,11 @@ interface SettingsState {
   // History Actions
   updatePlaylistHistory: (playlistId: string, songId: string) => void;
   setDownloadDirectory: (uri: string | null) => void;
+  setApplyThemeToOtherPages: (enabled: boolean) => void;
+
+  // Quick pins (3 customizable shortcut slots on Settings home)
+  quickPins: [string, string, string];
+  setQuickPins: (pins: [string, string, string]) => void;
 
   // Advanced
   lyricsDelay: number;
@@ -90,15 +100,19 @@ const DEFAULT_SETTINGS = {
   miniPlayerStyle: 'island' as const, // Default to island as requested "like it was before"
   navBarStyle: 'modern-pill' as const, // Default to modern pill navbar
   autoHideControls: true, // Default enabled
-  libraryBackgroundMode: 'daily' as const, // Default to daily top
-  animateBackground: true, // Default enable animation
+  libraryBackgroundMode: 'daily' as const,
+  islandBgMode: 'album-art' as const,
+  classicBarBgMode: 'album-art' as const,
+  animateBackground: true,
   libraryFocusMode: false, // Default disabled
   defaultView: 'grid' as ViewMode,
   defaultSort: 'recent' as SortOption,
   showThumbnails: true,
   showPerformanceHUD: false, // Default disabled
   downloadDirectoryUri: null,
+  applyThemeToOtherPages: false,
   lyricsDelay: -1.2,
+  quickPins: ['export', 'import', 'scan'] as [string, string, string],
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -123,9 +137,12 @@ export const useSettingsStore = create<SettingsState>()(
       setNavBarStyle: (navBarStyle) => set({ navBarStyle }),
       setAutoHideControls: (autoHideControls) => set({ autoHideControls }),
       setLibraryBackgroundMode: (libraryBackgroundMode) => set({ libraryBackgroundMode }),
+      setIslandBgMode: (islandBgMode) => set({ islandBgMode }),
+      setClassicBarBgMode: (classicBarBgMode) => set({ classicBarBgMode }),
       setAnimateBackground: (animateBackground: boolean) => set({ animateBackground }),
       setLibraryFocusMode: (libraryFocusMode: boolean) => set({ libraryFocusMode }),
       setShowPerformanceHUD: (showPerformanceHUD: boolean) => set({ showPerformanceHUD }),
+      setApplyThemeToOtherPages: (applyThemeToOtherPages: boolean) => set({ applyThemeToOtherPages }),
       
       // Library actions
       setDefaultView: (defaultView) => set({ defaultView }),
@@ -143,9 +160,12 @@ export const useSettingsStore = create<SettingsState>()(
       
       setDownloadDirectory: (downloadDirectoryUri) => set({ downloadDirectoryUri }),
 
+      // Quick pins
+      setQuickPins: (quickPins) => set({ quickPins }),
+
       // Reset
       resetToDefaults: () => set(DEFAULT_SETTINGS),
-      
+
       // Advanced
       lyricsDelay: -1.2,
       setLyricsDelay: (lyricsDelay) => set({ lyricsDelay }),

@@ -54,6 +54,7 @@ const InstrumentalWaveform: React.FC<InstrumentalWaveformProps> = ({ active }) =
       h2.value = withTiming(4);
       h3.value = withTiming(4);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   const style1 = useAnimatedStyle(() => ({ height: h1.value }));

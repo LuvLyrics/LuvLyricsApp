@@ -42,5 +42,5 @@ export const getGradientProps = (gradientId: string) => {
  */
 export const getDominantColor = (gradientId: string): string => {
   const gradient = getGradientById(gradientId);
-  return gradient?.colors[0] ?? '#000000';
+  return gradient?.colors[0] ?? '#020A16';
 };

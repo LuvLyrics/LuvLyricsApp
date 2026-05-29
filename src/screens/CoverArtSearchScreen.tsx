@@ -25,7 +25,7 @@ const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48) / 2; // 2 columns with padding
 
 export const CoverArtSearchScreen: React.FC<Props> = ({ visible, initialQuery, onClose, onSelect }) => {
-    const insets = useSafeAreaInsets();
+    useSafeAreaInsets(); // side-effect: ensures insets are calculated
     const [query, setQuery] = useState(initialQuery);
     const [results, setResults] = useState<ImageSearchResult[]>([]);
     const [isLoading, setIsLoading] = useState(false);

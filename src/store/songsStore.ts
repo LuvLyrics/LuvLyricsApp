@@ -210,21 +210,22 @@ export const useSongsStore = create<SongsState>()((set, get) => ({
         }
       },
 
-      // Toggle Like
+      // Toggle Like — delegates to playlistStore (single source of truth).
+      // We still patch songsStore and playerStore in-memory so legacy
+      // consumers that read song.isLiked directly (LikedSongsScreen,
+      // RecentlyPlayedGrid, SongCard) stay reactive without a full refetch.
       toggleLike: async (songId: string) => {
          try {
              const { usePlaylistStore } = await import('./playlistStore');
              await usePlaylistStore.getState().toggleLiked(songId);
-             
+
+             // Optimistic patch for in-memory consumers
              set((state) => {
                 const song = state.songs.find(s => s.id === songId);
                 if (!song) return state;
-                
-                const updatedSong = { ...song, isLiked: !song.isLiked };
-                return {
-                    songs: state.songs.map(s => s.id === songId ? updatedSong : s),
-                };
-             });
+                 const updatedSong = { ...song, isLiked: !song.isLiked };
+                 return { songs: state.songs.map(s => s.id === songId ? updatedSong : s) };
+              });
 
              const { usePlayerStore } = await import('./playerStore');
              const playerState = usePlayerStore.getState();

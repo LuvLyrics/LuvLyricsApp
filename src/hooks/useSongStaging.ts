@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Audio } from 'expo-av';
-import { NativeSearchService } from '../services/NativeSearchService';
 import { downloadManager } from '../services/DownloadManager';
 import { useSongsStore } from '../store/songsStore';
 import { useSettingsStore } from '../store/settingsStore';

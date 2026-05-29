@@ -12,12 +12,14 @@ import { useSongsStore } from '../store/songsStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { AuroraHeader } from '../components';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../contexts/ThemeContext';
+import { DarkColors } from '../constants/colors';
 import { formatTime } from '../utils/formatters';
 import { RootStackParamList } from '../types/navigation';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export const LikedSongsScreen: React.FC = () => {
+  const colors = useThemeColors();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const songs = useSongsStore(state => state.songs);
   const setCurrentSong = useSongsStore(state => state.setCurrentSong);
@@ -61,7 +63,7 @@ export const LikedSongsScreen: React.FC = () => {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={28} color={Colors.textPrimary} />
+            <Ionicons name="chevron-back" size={28} color={colors.textPrimary} />
           </Pressable>
           <Text style={styles.title}>Liked Songs</Text>
           <View style={{ width: 40 }} />
@@ -119,7 +121,7 @@ export const LikedSongsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: DarkColors.background,
   },
   safeArea: {
     flex: 1,
@@ -140,7 +142,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: DarkColors.textPrimary,
   },
   list: {
     paddingHorizontal: 16,
@@ -156,7 +158,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 6,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#0B1F3A',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -171,16 +173,16 @@ const styles = StyleSheet.create({
   songTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: DarkColors.textPrimary,
   },
   songArtist: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: DarkColors.textSecondary,
     marginTop: 2,
   },
   duration: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: DarkColors.textSecondary,
   },
   emptyContainer: {
     flex: 1,
@@ -191,12 +193,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: DarkColors.textPrimary,
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: DarkColors.textSecondary,
     marginTop: 8,
   },
   heartButton: {

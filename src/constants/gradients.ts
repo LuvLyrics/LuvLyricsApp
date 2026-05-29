@@ -207,6 +207,7 @@ export const getGradientForSong = (song: { id: string; gradientId?: string }): s
     // Sum char codes to get integer
     let hash = 0;
     for (let i = 0; i < song.id.length; i++) {
+        // eslint-disable-next-line no-bitwise
         hash = song.id.charCodeAt(i) + ((hash << 5) - hash);
     }
     

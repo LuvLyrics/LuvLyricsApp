@@ -13,11 +13,18 @@ import { usePlaylistStore } from '../store/playlistStore';
 import { usePlayerStore } from '../store/playerStore';
 import { CustomMenu } from '../components';
 import { MosaicCover } from '../components/MosaicCover';
-import { Colors } from '../constants/colors';
+import { useThemeColors, useIsDark } from '../contexts/ThemeContext';
+import { useSettingsStore } from '../store/settingsStore';
+import { useDailyStatsStore } from '../store/dailyStatsStore';
+import { useSongsStore } from '../store/songsStore';
+import { getGradientColors } from '../constants/gradients';
+import { AuroraHeader } from '../components/AuroraHeader';
+import { DarkColors } from '../constants/colors';
 import { RootStackParamList } from '../types/navigation';
 import { Playlist, Song } from '../types/song';
 
 export const PlaylistsScreen: React.FC = () => {
+  const colors = useThemeColors();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isLoading = usePlaylistStore(state => state.isLoading);
   const deletePlaylist = usePlaylistStore(state => state.deletePlaylist);
@@ -26,6 +33,71 @@ export const PlaylistsScreen: React.FC = () => {
   const setMiniPlayerHidden = usePlayerStore(state => state.setMiniPlayerHidden);
   
   const [playlistSongs, setPlaylistSongs] = React.useState<Record<string, Song[]>>({});
+
+  const isDark = useIsDark();
+  const libraryBackgroundMode = useSettingsStore(state => state.libraryBackgroundMode);
+  const applyThemeToOtherPages = useSettingsStore(state => state.applyThemeToOtherPages);
+  
+  const isSolidBg = libraryBackgroundMode === 'purest-black'
+    || libraryBackgroundMode === 'grey'
+    || libraryBackgroundMode === 'theme-subtle'
+    || libraryBackgroundMode === 'black'
+    || libraryBackgroundMode === 'theme-blue';
+  const currentSongId = usePlayerStore(state => state.currentSongId);
+  const playerCurrentCover = usePlayerStore(state => state.currentSong?.coverImageUri);
+  const playerCurrentGradient = usePlayerStore(state => state.currentSong?.gradientId);
+  const { songs: allSongsStore, getSong } = useSongsStore();
+
+  const [activeThemeColors, setActiveThemeColors] = React.useState<string[] | undefined>(undefined);
+  const [activeImageUri, setActiveImageUri] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!applyThemeToOtherPages) {
+      setActiveThemeColors(undefined);
+      setActiveImageUri(null);
+      return;
+    }
+    const updateTheme = async () => {
+      let themeColors: string[] | undefined;
+      let image: string | null = null;
+      if (libraryBackgroundMode === 'current') {
+        if (currentSongId) {
+          image = playerCurrentCover || null;
+          if (!image && playerCurrentGradient) {
+            themeColors = playerCurrentGradient === 'dynamic' ? ['#f7971e', '#ffd200', '#ff6b35'] : getGradientColors(playerCurrentGradient);
+          }
+        }
+      } else if (libraryBackgroundMode === 'daily') {
+        const topId = useDailyStatsStore.getState().getTopSongOfYesterday() || useDailyStatsStore.getState().getTopSongOfToday();
+        if (topId) {
+          const song = allSongsStore.find(s => s.id === topId) || await getSong(topId);
+          if (song) {
+            image = song.coverImageUri || null;
+            if (!image && song.gradientId) {
+              themeColors = song.gradientId === 'dynamic' ? ['#f7971e', '#ffd200', '#ff6b35'] : getGradientColors(song.gradientId);
+            }
+          }
+        }
+      } else if (libraryBackgroundMode === 'black') {
+        themeColors = ['#050505', '#050505', '#050505'];
+        image = null;
+      } else if (libraryBackgroundMode === 'purest-black') {
+        themeColors = ['#000000', '#000000', '#000000'];
+        image = null;
+      } else if (libraryBackgroundMode === 'grey') {
+        themeColors = ['#121212', '#212121', '#121212'];
+        image = null;
+      } else if (libraryBackgroundMode === 'theme-subtle') {
+        themeColors = ['#0E1722', '#1E2A3A', '#0E1722'];
+        image = null;
+      } else if (libraryBackgroundMode === 'theme-blue') {
+        themeColors = ['#0A1628', '#1A3A6B', '#2F8CFF'];
+        image = null;
+      }
+      setActiveThemeColors(themeColors); setActiveImageUri(image);
+    };
+    updateTheme();
+  }, [applyThemeToOtherPages, libraryBackgroundMode, currentSongId, playerCurrentCover, playerCurrentGradient, allSongsStore, allSongsStore.length, getSong]);
 
   // Load playlists on mount and refresh on focus
   useFocusEffect(
@@ -122,24 +194,30 @@ export const PlaylistsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? '#000' : colors.background }]} />
+      {isDark && applyThemeToOtherPages && (
+        <View style={StyleSheet.absoluteFill}>
+          <AuroraHeader palette="library" colors={activeThemeColors} imageUri={activeImageUri} isSolid={isSolidBg} />
+        </View>
+      )}
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* ... Header ... */}
         <View style={styles.header}>
           <Text style={styles.title}>Your Library</Text>
           <Pressable onPress={handleCreatePlaylist} style={styles.addButton}>
-            <Ionicons name="add-circle-outline" size={28} color={Colors.textPrimary} />
+            <Ionicons name="add-circle-outline" size={28} color={colors.textPrimary} />
           </Pressable>
         </View>
 
         {isLoading && playlists.length === 0 ? (
              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                 <ActivityIndicator size="large" color={Colors.primary} />
+                 <ActivityIndicator size="large" color={colors.primary} />
              </View>
         ) : playlists.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="folder-open-outline" size={80} color="rgba(255,255,255,0.2)" />
-            <Text style={styles.emptyTitle}>No playlists yet</Text>
-            <Text style={styles.emptySubtitle}>Create your first playlist to get started</Text>
+            <Ionicons name="folder-open-outline" size={80} color={isDark ? 'rgba(255,255,255,0.2)' : colors.textMuted} />
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No playlists yet</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Create your first playlist to get started</Text>
             <Pressable style={styles.createButton} onPress={handleCreatePlaylist}>
               <Ionicons name="add" size={24} color="#fff" />
               <Text style={styles.createButtonText}>Create Playlist</Text>
@@ -186,7 +264,7 @@ export const PlaylistsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#000',
   },
   safeArea: {
     flex: 1,
@@ -201,7 +279,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: DarkColors.textPrimary,
   },
   addButton: {
     padding: 8,
@@ -218,12 +296,12 @@ const styles = StyleSheet.create({
   playlistName: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: DarkColors.textPrimary,
     marginTop: 12,
   },
   playlistCount: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: DarkColors.textSecondary,
     marginTop: 4,
   },
   emptyContainer: {
@@ -236,12 +314,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: DarkColors.textPrimary,
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: DarkColors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
   },

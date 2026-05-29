@@ -3,16 +3,14 @@
  */
 
 import { 
-  closeDatabase, 
   getDatabase, 
   withDbRead,
   withDbWrite,
   withDbSafe,
   esc
 } from './db';
-import * as SQLite from 'expo-sqlite';
 import * as FileSystem from 'expo-file-system/legacy';
-import { Song, LyricLine } from '../types/song';
+import { Song } from '../types/song';
 import { normalizeLyrics } from '../utils/timestampParser';
 
 const LOG_PREFIX = '[QUERIES]';

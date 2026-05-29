@@ -26,7 +26,11 @@ import { TabScreenProps } from '../types/navigation';
 import { usePlayerStore } from '../store/playerStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { CustomAlert } from '../components/CustomAlert';
-import { Colors } from '../constants/colors';
+import { useThemeColors, useIsDark } from '../contexts/ThemeContext';
+import { getGradientColors } from '../constants/gradients';
+import { useDailyStatsStore } from '../store/dailyStatsStore';
+import { AuroraHeader } from '../components/AuroraHeader';
+import { Colors, DarkColors } from '../constants/colors';
 import { exportAllSongs, shareExportedFile, importSongsFromJson } from '../utils/exportImport';
 import { clearAllData } from '../database/queries';
 import { useLuvsPreferencesStore } from '../store/luvsPreferencesStore';
@@ -34,10 +38,27 @@ import { useDesktopBridgeSettingsStore } from '../store/desktopBridgeSettingsSto
 import { desktopBridgeService } from '../services/DesktopBridgeService';
 import { trustedPairingService, TrustedDesktopRecord } from '../services/TrustedPairingService';
 import { useSongsStore } from '../store/songsStore';
+import { usePlaylistStore } from '../store/playlistStore';
 import { scanAudioFiles, convertAudioFileToSong } from '../services/mediaScanner';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
+
+// ─── Mini player background options ──────────────────────────────────────────
+
+type MiniBgMode = 'album-art' | 'song-gradient' | 'aurora' | 'purest-black' | 'grey' | 'theme-subtle' | 'theme-blue';
+
+const MINI_BG_MODES: MiniBgMode[] = ['album-art', 'song-gradient', 'aurora', 'purest-black', 'grey', 'theme-subtle', 'theme-blue'];
+
+const MINI_BG_LABELS: Record<MiniBgMode, string> = {
+  'album-art':     'Album Art',
+  'song-gradient': 'Song Gradient',
+  'aurora':        'Aurora',
+  'purest-black':  'Pure Black',
+  'grey':          'Spotify Grey',
+  'theme-subtle':  'Subtle Dark',
+  'theme-blue':    'LuvLyrics Blue',
+};
 
 // ─── Bottom Sheet ────────────────────────────────────────────────────────────
 
@@ -54,6 +75,9 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ visible, title, onClose, chil
   const panY = React.useRef(new Animated.Value(0)).current;
   const [modalVisible, setModalVisible] = React.useState(false);
   const isClosing = React.useRef(false);
+  const isDark = useIsDark();
+  const colors = useThemeColors();
+  const dividerColor = useSettingsDividerColor();
 
   const closeOnce = React.useCallback(() => {
     if (isClosing.current) return;
@@ -101,18 +125,18 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ visible, title, onClose, chil
       <Animated.View style={[StyleSheet.absoluteFill, bs.backdrop, { opacity: overlayOpacity }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={closeOnce} />
       </Animated.View>
-      <Animated.View style={[bs.sheet, { transform: [{ translateY: Animated.add(sheetTranslateY, panY) }] }]} {...panResponder.panHandlers}>
+      <Animated.View style={[bs.sheet, { backgroundColor: isDark ? '#1C1C1E' : colors.card, transform: [{ translateY: Animated.add(sheetTranslateY, panY) }] }]} {...panResponder.panHandlers}>
         <View style={bs.handle} />
-        <View style={bs.header}>
-          <Text style={bs.title}>{title}</Text>
+        <View style={[bs.header, { borderBottomColor: dividerColor }]}>
+          <Text style={[bs.title, { color: colors.textPrimary }]}>{title}</Text>
           <Pressable onPress={onClose} hitSlop={12}>
-            <Ionicons name="close" size={22} color={Colors.textSecondary} />
+            <Ionicons name="close" size={22} color={colors.textSecondary} />
           </Pressable>
         </View>
         <ScrollView bounces={false} keyboardShouldPersistTaps="handled" contentContainerStyle={bs.content}>
           {children}
         </ScrollView>
-        <View style={bs.sheetFloor} />
+        <View style={[bs.sheetFloor, { backgroundColor: isDark ? '#1C1C1E' : colors.card }]} />
       </Animated.View>
     </Modal>
   );
@@ -220,24 +244,27 @@ const LuvsLanguagesModal = ({ visible, onClose }: { visible: boolean; onClose: (
 
 // ─── Reusable rows ───────────────────────────────────────────────────────────
 
-interface SettingsRowProps {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value?: string;
-  onPress?: () => void;
-  showChevron?: boolean;
-}
+const useSettingsDividerColor = () => {
+  const colors = useThemeColors();
+  const isDark = useIsDark();
+  const libraryBackgroundMode = useSettingsStore(state => state.libraryBackgroundMode);
 
-const SettingsRow: React.FC<SettingsRowProps> = ({ icon, label, value, onPress, showChevron = true }) => (
-  <Pressable style={styles.settingsRow} onPress={onPress}>
-    <Ionicons name={icon} size={22} color={Colors.textSecondary} />
-    <Text style={styles.settingsLabel}>{label}</Text>
-    <View style={styles.settingsValue}>
-      {value ? <Text style={styles.settingsValueText}>{value}</Text> : null}
-      {showChevron && <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />}
-    </View>
-  </Pressable>
-);
+  if (!isDark) return colors.divider;
+  switch (libraryBackgroundMode) {
+    case 'purest-black':
+    case 'black':
+      return 'rgba(255,255,255,0.08)';
+    case 'grey':
+      return '#282828';
+    case 'theme-subtle':
+      return '#1E2A3A';
+    case 'theme-blue':
+      return '#1C3E6B';
+    default:
+      return colors.divider;
+  }
+};
+
 
 interface SettingsRowSwitchProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -246,13 +273,41 @@ interface SettingsRowSwitchProps {
   onToggle: (v: boolean) => void;
 }
 
-const SettingsRowSwitch: React.FC<SettingsRowSwitchProps> = ({ icon, label, value, onToggle }) => (
-  <View style={styles.settingsRow}>
-    <Ionicons name={icon} size={22} color={Colors.textSecondary} />
-    <Text style={styles.settingsLabel}>{label}</Text>
-    <Switch value={value} onValueChange={onToggle} trackColor={{ false: '#39393D', true: '#34C759' }} thumbColor="#fff" />
-  </View>
-);
+const SettingsRowSwitch: React.FC<SettingsRowSwitchProps> = ({ icon, label, value, onToggle }) => {
+  const dividerColor = useSettingsDividerColor();
+  const colors = useThemeColors();
+  return (
+    <View style={[styles.settingsRow, { borderBottomColor: dividerColor }]}>
+      <Ionicons name={icon} size={22} color={colors.textSecondary} />
+      <Text style={[styles.settingsLabel, { color: colors.textPrimary }]}>{label}</Text>
+      <Switch value={value} onValueChange={onToggle} trackColor={{ false: '#39393D', true: '#34C759' }} thumbColor="#fff" />
+    </View>
+  );
+};
+
+interface SettingsRowProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value?: string;
+  onPress: () => void;
+}
+
+const SettingsRow: React.FC<SettingsRowProps> = ({ icon, label, value, onPress }) => {
+  const dividerColor = useSettingsDividerColor();
+  const colors = useThemeColors();
+  return (
+    <Pressable style={[styles.settingsRow, { borderBottomColor: dividerColor }]} onPress={onPress}>
+      <Ionicons name={icon} size={22} color={colors.textSecondary} />
+      <Text style={[styles.settingsLabel, { color: colors.textPrimary }]}>{label}</Text>
+      {value ? (
+        <View style={styles.settingsValue}>
+          <Text style={[styles.settingsValueText, { color: colors.textSecondary }]}>{value}</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        </View>
+      ) : null}
+    </Pressable>
+  );
+};
 
 interface MenuRowProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -263,18 +318,51 @@ interface MenuRowProps {
   isLast?: boolean;
 }
 
-const MenuRow: React.FC<MenuRowProps> = ({ icon, iconColor, label, badge, onPress, isLast }) => (
-  <Pressable style={[styles.menuRow, isLast && styles.menuRowLast]} onPress={onPress}>
-    <View style={[styles.menuIcon, { backgroundColor: iconColor + '22' }]}>
-      <Ionicons name={icon} size={20} color={iconColor} />
-    </View>
-    <Text style={styles.menuLabel}>{label}</Text>
-    <View style={styles.menuRight}>
-      {badge ? <Text style={styles.menuBadge}>{badge}</Text> : null}
-      <Ionicons name="chevron-down" size={16} color={Colors.textMuted} />
-    </View>
-  </Pressable>
-);
+const MenuRow: React.FC<MenuRowProps> = ({ icon, iconColor, label, badge, onPress, isLast }) => {
+  const dividerColor = useSettingsDividerColor();
+  const colors = useThemeColors();
+  return (
+    <Pressable style={[styles.menuRow, { borderBottomColor: dividerColor }, isLast && styles.menuRowLast]} onPress={onPress}>
+      <View style={[styles.menuIcon, { backgroundColor: iconColor + '22' }]}>
+        <Ionicons name={icon} size={20} color={iconColor} />
+      </View>
+      <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{label}</Text>
+      <View style={styles.menuRight}>
+        {badge ? <Text style={[styles.menuBadge, { color: colors.textSecondary }]}>{badge}</Text> : null}
+        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+      </View>
+    </Pressable>
+  );
+};
+
+// ─── Pinnable items definition ───────────────────────────────────────────────
+
+type PinId = 'appearance' | 'playback' | 'library' | 'discovery' | 'miniplayer' | 'desktop' | 'data' | 'about' | 'export' | 'import' | 'scan';
+
+const PINNABLE_ITEMS: Record<PinId, {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  label: string;
+  section: 'personalization' | 'system' | 'tools';
+}> = {
+  appearance:  { icon: 'moon-outline',              iconColor: '#A78BFA', label: 'Appearance',   section: 'personalization' },
+  playback:    { icon: 'play-circle-outline',        iconColor: '#34C759', label: 'Playback',     section: 'personalization' },
+  library:     { icon: 'folder-open-outline',        iconColor: '#FF9F0A', label: 'Library',      section: 'personalization' },
+  discovery:   { icon: 'globe-outline',              iconColor: '#30D158', label: 'Discovery',    section: 'personalization' },
+  miniplayer:  { icon: 'radio-outline',              iconColor: '#FF6B6B', label: 'Mini Player',  section: 'personalization' },
+  desktop:     { icon: 'desktop-outline',            iconColor: '#0A84FF', label: 'Desktop',      section: 'system' },
+  data:        { icon: 'trash-outline',              iconColor: '#FF453A', label: 'Data',         section: 'system' },
+  about:       { icon: 'information-circle-outline', iconColor: '#8E8E93', label: 'About',        section: 'system' },
+  export:      { icon: 'download-outline',           iconColor: '#A78BFA', label: 'Export',       section: 'tools' },
+  import:      { icon: 'cloud-upload-outline',       iconColor: '#F472B6', label: 'Import',       section: 'tools' },
+  scan:        { icon: 'musical-notes-outline',      iconColor: '#60A5FA', label: 'Scan Audio',   section: 'tools' },
+};
+
+const PIN_SECTIONS: { key: 'personalization' | 'system' | 'tools'; label: string }[] = [
+  { key: 'personalization', label: 'PERSONALIZATION' },
+  { key: 'system',          label: 'SYSTEM' },
+  { key: 'tools',           label: 'TOOLS' },
+];
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
@@ -282,7 +370,73 @@ type Props = TabScreenProps<'Settings'>;
 
 const SettingsScreen: React.FC<Props> = () => {
   const settings = useSettingsStore();
-  const { fetchSongs, addSong, songs, deleteSong } = useSongsStore();
+  const { fetchSongs, addSong, songs, deleteSong, getSong } = useSongsStore();
+  const applyThemeToOtherPages = useSettingsStore(state => state.applyThemeToOtherPages);
+  const libraryBackgroundMode = useSettingsStore(state => state.libraryBackgroundMode);
+  const isDark = useIsDark();
+  const colors = useThemeColors();
+  const dividerColor = useSettingsDividerColor();
+
+  const isSolidBg = libraryBackgroundMode === 'purest-black'
+    || libraryBackgroundMode === 'grey'
+    || libraryBackgroundMode === 'theme-subtle'
+    || libraryBackgroundMode === 'black'
+    || libraryBackgroundMode === 'theme-blue';
+  const currentSongId = usePlayerStore(state => state.currentSongId);
+  const playerCurrentCover = usePlayerStore(state => state.currentSong?.coverImageUri);
+  const playerCurrentGradient = usePlayerStore(state => state.currentSong?.gradientId);
+
+  const [activeThemeColors, setActiveThemeColors] = React.useState<string[] | undefined>(undefined);
+  const [activeImageUri, setActiveImageUri] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!applyThemeToOtherPages) {
+      setActiveThemeColors(undefined);
+      setActiveImageUri(null);
+      return;
+    }
+    const updateTheme = async () => {
+      let themeColors: string[] | undefined;
+      let image: string | null = null;
+      if (libraryBackgroundMode === 'current') {
+        if (currentSongId) {
+          image = playerCurrentCover || null;
+          if (!image && playerCurrentGradient) {
+            themeColors = playerCurrentGradient === 'dynamic' ? ['#f7971e', '#ffd200', '#ff6b35'] : getGradientColors(playerCurrentGradient);
+          }
+        }
+      } else if (libraryBackgroundMode === 'daily') {
+        const topId = useDailyStatsStore.getState().getTopSongOfYesterday() || useDailyStatsStore.getState().getTopSongOfToday();
+        if (topId) {
+          const song = songs.find(s => s.id === topId) || await getSong(topId);
+          if (song) {
+            image = song.coverImageUri || null;
+            if (!image && song.gradientId) {
+              themeColors = song.gradientId === 'dynamic' ? ['#f7971e', '#ffd200', '#ff6b35'] : getGradientColors(song.gradientId);
+            }
+          }
+        }
+      } else if (libraryBackgroundMode === 'black') {
+        themeColors = ['#050505', '#050505', '#050505'];
+        image = null;
+      } else if (libraryBackgroundMode === 'purest-black') {
+        themeColors = ['#000000', '#000000', '#000000'];
+        image = null;
+      } else if (libraryBackgroundMode === 'grey') {
+        themeColors = ['#121212', '#212121', '#121212'];
+        image = null;
+      } else if (libraryBackgroundMode === 'theme-subtle') {
+        themeColors = ['#0E1722', '#1E2A3A', '#0E1722'];
+        image = null;
+      } else if (libraryBackgroundMode === 'theme-blue') {
+        themeColors = ['#0A1628', '#1A3A6B', '#2F8CFF'];
+        image = null;
+      }
+      setActiveThemeColors(themeColors); setActiveImageUri(image);
+    };
+    updateTheme();
+  }, [applyThemeToOtherPages, libraryBackgroundMode, currentSongId, playerCurrentCover, playerCurrentGradient, songs, songs.length, getSong]);
+
   const [isImporting, setIsImporting] = React.useState(false);
   const [profileName, setProfileName] = React.useState('LyricFlow User');
   const [profileImage, setProfileImage] = React.useState<string | null>(null);
@@ -293,6 +447,7 @@ const SettingsScreen: React.FC<Props> = () => {
   const [selectedFiles, setSelectedFiles] = React.useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = React.useState('');
   const setMiniPlayerHidden = usePlayerStore(state => state.setMiniPlayerHidden);
+  const likedCount = usePlaylistStore(state => state.likedSongIds.size);
   const [hiddenSongsVisible, setHiddenSongsVisible] = React.useState(false);
   const { hiddenSongs, fetchHiddenSongs, hideSong: unhideSong } = useSongsStore();
   const [luvsLangModalVisible, setLuvsLangModalVisible] = React.useState(false);
@@ -303,226 +458,263 @@ const SettingsScreen: React.FC<Props> = () => {
   const [trustedDesktops, setTrustedDesktops] = React.useState<TrustedDesktopRecord[]>([]);
   const [activeSheet, setActiveSheet] = React.useState<string | null>(null);
   const closeSheet = React.useCallback(() => setActiveSheet(null), []);
+  const quickPins = useSettingsStore(state => state.quickPins);
+  const setQuickPins = useSettingsStore(state => state.setQuickPins);
+  const [pinPickerSlot, setPinPickerSlot] = React.useState<number | null>(null);
 
   const [alertConfig, setAlertConfig] = React.useState<{
-    visible: boolean;
-    title: string;
-    message: string;
-    buttons: Array<{ text: string; onPress: () => void; style?: 'default' | 'cancel' | 'destructive' }>;
+    visible: boolean; title: string; message: string;
+    buttons: { text: string; onPress: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
   }>({ visible: false, title: '', message: '', buttons: [] });
 
-  const loadTrustedDesktops = React.useCallback(async () => {
-    const all = await trustedPairingService.listTrustedDesktops();
-    setTrustedDesktops(all);
+  const handleEditAvatar = React.useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Allow photo library access to change your profile picture.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1] as [number, number],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setProfileImage(result.assets[0].uri);
+    }
   }, []);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      setMiniPlayerHidden(true);
-      loadTrustedDesktops().catch(() => undefined);
-    }, [setMiniPlayerHidden, loadTrustedDesktops])
+  const handleEditName = React.useCallback(() => {
+    setTempName(profileName);
+    setEditNameVisible(true);
+  }, [profileName]);
+
+  const handleSaveName = React.useCallback(() => {
+    if (tempName.trim()) setProfileName(tempName.trim());
+    setEditNameVisible(false);
+  }, [tempName]);
+
+  const handleExport = React.useCallback(async () => {
+    try {
+      const filePath = await exportAllSongs();
+      await shareExportedFile(filePath);
+    } catch (e) {
+      Alert.alert('Export failed', e instanceof Error ? e.message : 'Unknown error');
+    }
+  }, [songs]);
+
+  const handleImport = React.useCallback(async () => {
+    try {
+      setIsImporting(true);
+      const imported = await importSongsFromJson();
+      if (imported > 0) {
+        await fetchSongs();
+        Alert.alert('Import complete', `${imported} song(s) imported successfully.`);
+      }
+    } catch (e) {
+      Alert.alert('Import failed', e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setIsImporting(false);
+    }
+  }, [fetchSongs]);
+
+  const handleImportLocalAudio = React.useCallback(async () => {
+    try {
+      const files = await scanAudioFiles();
+      setAvailableAudioFiles(files);
+      setSelectedFiles(new Set(files.map((f: any) => f.uri)));
+      setSelectionModalVisible(true);
+    } catch (e) {
+      Alert.alert('Scan failed', e instanceof Error ? e.message : 'Unknown error');
+    }
+  }, []);
+
+  const handleCloseSelectionModal = React.useCallback(() => {
+    setSelectionModalVisible(false);
+    setSelectedFiles(new Set());
+    setSearchQuery('');
+  }, []);
+
+  const toggleSelectAll = React.useCallback(() => {
+    if (selectedFiles.size === availableAudioFiles.length) {
+      setSelectedFiles(new Set());
+    } else {
+      setSelectedFiles(new Set(availableAudioFiles.map((f: any) => f.uri)));
+    }
+  }, [selectedFiles.size, availableAudioFiles]);
+
+  const toggleFileSelection = React.useCallback((uri: string) => {
+    setSelectedFiles(prev => {
+      const next = new Set(prev);
+      if (next.has(uri)) next.delete(uri); else next.add(uri);
+      return next;
+    });
+  }, []);
+
+  const filteredAudioFiles = React.useMemo(() =>
+    searchQuery.trim() === ''
+      ? availableAudioFiles
+      : availableAudioFiles.filter((f: any) =>
+          (f.filename || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (f.artist || '').toLowerCase().includes(searchQuery.toLowerCase())
+        ),
+    [availableAudioFiles, searchQuery]
   );
 
-  const filteredAudioFiles = React.useMemo(() => {
-    if (!searchQuery.trim()) return availableAudioFiles;
-    const q = searchQuery.toLowerCase().trim();
-    return availableAudioFiles.filter(f =>
-      (f.filename || '').toLowerCase().includes(q) ||
-      (f.artist || '').toLowerCase().includes(q) ||
-      (f.album || '').toLowerCase().includes(q)
-    );
-  }, [availableAudioFiles, searchQuery]);
+  const handleImportSelected = React.useCallback(async () => {
+    const filesToImport = availableAudioFiles.filter((f: any) => selectedFiles.has(f.uri));
+    setSelectionModalVisible(false);
+    let count = 0;
+    for (const file of filesToImport) {
+      try {
+        const song = await convertAudioFileToSong(file);
+        if (song) { await addSong(song); count++; }
+      } catch {}
+    }
+    if (count > 0) {
+      await fetchSongs();
+      Alert.alert('Import complete', `${count} song(s) added to library.`);
+    }
+    setSelectedFiles(new Set());
+  }, [availableAudioFiles, selectedFiles, addSong, fetchSongs]);
 
-  const handlePairFromPayload = async () => {
-    if (!pairingPayloadText.trim()) return;
+  const handlePairFromPayload = React.useCallback(async () => {
     try {
       setPairingBusy(true);
-      await desktopBridgeService.pairFromQrPayload(pairingPayloadText.trim());
-      await loadTrustedDesktops();
+      const payload = JSON.parse(pairingPayloadText);
+      await trustedPairingService.saveTrustedDesktop(payload);
+      const desktops = await trustedPairingService.listTrustedDesktops();
+      setTrustedDesktops(desktops);
       setPairingModalVisible(false);
       setPairingPayloadText('');
-      setAlertConfig({ visible: true, title: 'Pairing Complete', message: 'Trusted desktop saved.', buttons: [{ text: 'OK', onPress: () => {} }] });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Pairing failed';
-      setAlertConfig({ visible: true, title: 'Pairing Failed', message, buttons: [{ text: 'OK', onPress: () => {} }] });
+    } catch (e) {
+      Alert.alert('Pairing failed', e instanceof Error ? e.message : 'Invalid payload');
     } finally {
       setPairingBusy(false);
     }
-  };
+  }, [pairingPayloadText]);
 
-  const handleEditName = () => { setTempName(profileName); setEditNameVisible(true); };
-  const handleSaveName = () => { if (tempName.trim()) setProfileName(tempName.trim()); setEditNameVisible(false); };
-
-  const handleEditAvatar = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-      if (!result.canceled && result.assets[0].uri) setProfileImage(result.assets[0].uri);
-    } catch {}
-  };
-
-  const handleExport = async () => {
-    try { const uri = await exportAllSongs(); await shareExportedFile(uri); }
-    catch { Alert.alert('Export Failed', 'Could not export songs.'); }
-  };
-
-  const handleImport = async () => {
-    try {
-      const count = await importSongsFromJson();
-      if (count > 0) { Alert.alert('Import Successful', `Imported ${count} songs.`); await fetchSongs(); }
-    } catch { Alert.alert('Import Failed', 'Could not import songs.'); }
-  };
-
-  const handleClearData = () => {
-    setAlertConfig({
-      visible: true, title: '⚠️ Clear All Data',
-      message: 'This will permanently delete all songs and lyrics. Cannot be undone.',
-      buttons: [
-        { text: 'Cancel', style: 'cancel', onPress: () => {} },
-        { text: 'Delete All', style: 'destructive', onPress: async () => {
-          try {
-            await clearAllData(); await fetchSongs();
-            setAlertConfig({ visible: true, title: '✅ Done', message: 'All data cleared.', buttons: [{ text: 'OK', onPress: () => {} }] });
-          } catch {
-            setAlertConfig({ visible: true, title: '❌ Error', message: 'Failed to clear data.', buttons: [{ text: 'OK', onPress: () => {} }] });
-          }
-        }},
-      ],
-    });
-  };
-
-  const handleClearImported = async () => {
-    const importedSongs = songs.filter(s => s.audioUri);
-    if (importedSongs.length === 0) {
-      setAlertConfig({ visible: true, title: 'No Imported Songs', message: 'Nothing to remove.', buttons: [{ text: 'OK', onPress: () => {} }] });
-      return;
-    }
-    setAlertConfig({
-      visible: true, title: '🗑️ Clear Imported Audio',
-      message: `Remove ${importedSongs.length} imported audio files?`,
-      buttons: [
-        { text: 'Cancel', style: 'cancel', onPress: () => {} },
-        { text: `Remove ${importedSongs.length}`, style: 'destructive', onPress: async () => {
-          try {
-            for (const s of importedSongs) await deleteSong(s.id);
-            setAlertConfig({ visible: true, title: '✅ Removed', message: `Removed ${importedSongs.length} songs.`, buttons: [{ text: 'Done', onPress: () => {} }] });
-          } catch {
-            setAlertConfig({ visible: true, title: '❌ Error', message: 'Failed to remove.', buttons: [{ text: 'OK', onPress: () => {} }] });
-          }
-        }},
-      ],
-    });
-  };
-
-  const handleImportLocalAudio = async () => {
-    try {
-      setIsImporting(true);
-      const audioFiles = await scanAudioFiles();
-      if (audioFiles.length === 0) { Alert.alert('No Audio Files', 'No audio files found.'); setIsImporting(false); return; }
-      const existingUris = new Set(songs.filter(s => s.audioUri).map(s => s.audioUri));
-      const newFiles = audioFiles.filter(f => !existingUris.has(f.uri));
-      if (newFiles.length === 0) {
-        setAlertConfig({ visible: true, title: 'Already Imported', message: 'All audio files already imported.', buttons: [{ text: 'OK', onPress: () => setIsImporting(false) }] });
-        return;
-      }
-      setIsImporting(false);
-      setAvailableAudioFiles(newFiles);
-      setSelectedFiles(new Set());
-      setSearchQuery('');
-      setSelectionModalVisible(true);
-    } catch {
-      setIsImporting(false);
-      Alert.alert('Import Failed', 'Could not access media library.');
-    }
-  };
-
-  const handleImportSelected = async () => {
-    setSelectionModalVisible(false);
-    setIsImporting(true);
-    let imported = 0;
-    for (const f of availableAudioFiles) {
-      if (selectedFiles.has(f.uri)) {
-        try { await addSong(convertAudioFileToSong(f)); imported++; } catch {}
-      }
-    }
-    setIsImporting(false);
-    setAlertConfig({ visible: true, title: '✅ Import Complete', message: `Imported ${imported} of ${selectedFiles.size} songs.`, buttons: [{ text: 'Done', onPress: () => {} }] });
-  };
-
-  const toggleSelectAll = () => {
-    setSelectedFiles(selectedFiles.size === availableAudioFiles.length ? new Set() : new Set(availableAudioFiles.map(f => f.uri)));
-  };
-
-  const handleCloseSelectionModal = () => { setSelectionModalVisible(false); setSearchQuery(''); };
-
-  const toggleFileSelection = (uri: string) => {
-    const next = new Set(selectedFiles);
-    next.has(uri) ? next.delete(uri) : next.add(uri);
-    setSelectedFiles(next);
-  };
-
-  const handleSetDownloadLocation = async () => {
-    if (Platform.OS !== 'android') { Alert.alert('Not Available', 'Custom folders are Android-only.'); return; }
-    try {
-      const p = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-      if (p.granted) { settings.setDownloadDirectory(p.directoryUri); Alert.alert('Success', 'Download location updated.'); }
-    } catch { Alert.alert('Error', 'Failed to set download location.'); }
-  };
-
-  // ─── Render ─────────────────────────────────────────────────────────────────
+  const cardBg = isDark ? 'rgba(255,255,255,0.06)' : colors.card;
+  const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : colors.border;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#000' : colors.background }]}>
+      {isDark && applyThemeToOtherPages && (
+        <View style={StyleSheet.absoluteFill}>
+          <AuroraHeader palette="settings" colors={activeThemeColors} imageUri={activeImageUri} isSolid={isSolidBg} />
+        </View>
+      )}
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-          {/* Profile */}
-          <View style={styles.profileSection}>
-            <Pressable style={styles.avatar} onPress={handleEditAvatar}>
+          {/* ── Screen title ── */}
+          <Text style={[styles.screenTitle, { color: colors.textPrimary }]}>Settings</Text>
+
+          {/* ── Profile card ── */}
+          <View style={[styles.profileCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+            {/* Avatar */}
+            <Pressable
+              style={[styles.avatar, {
+                backgroundColor: isDark ? 'rgba(6,21,43,1)' : colors.cardHover,
+                borderColor: cardBorder,
+              }]}
+              onPress={handleEditAvatar}
+            >
               {profileImage
                 ? <Image source={{ uri: profileImage }} style={styles.avatarImage} />
-                : <Ionicons name="person" size={40} color={Colors.textSecondary} />}
-              <View style={styles.editBadge}>
-                <Ionicons name="camera" size={14} color="#000" />
+                : <Ionicons name="person" size={34} color={isDark ? 'rgba(255,255,255,0.4)' : colors.textMuted} />}
+              <View style={[styles.editBadge, { borderColor: isDark ? '#000' : colors.background }]}>
+                <Ionicons name="camera" size={12} color="#000" />
               </View>
             </Pressable>
-            <Pressable onPress={handleEditName}>
-              <View style={styles.nameContainer}>
-                <Text style={styles.profileName}>{profileName}</Text>
-                <Ionicons name="create-outline" size={16} color={Colors.textSecondary} style={{ marginLeft: 6 }} />
+
+            {/* Name + stats */}
+            <View style={styles.profileRight}>
+              <Pressable onPress={handleEditName} style={styles.nameRow}>
+                <Text style={[styles.profileName, { color: colors.textPrimary }]} numberOfLines={1}>{profileName}</Text>
+                <Ionicons name="pencil-outline" size={14} color={colors.textMuted} style={{ marginLeft: 6 }} />
+              </Pressable>
+              <Text style={[styles.profileSub, { color: colors.textMuted }]}>Offline · Privacy First</Text>
+
+              {/* Stats strip */}
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{songs.length}</Text>
+                  <Text style={[styles.statLabel, { color: colors.textMuted }]}>Songs</Text>
+                </View>
+                <View style={[styles.statDivider, { backgroundColor: cardBorder }]} />
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{likedCount}</Text>
+                  <Text style={[styles.statLabel, { color: colors.textMuted }]}>Liked</Text>
+                </View>
+                <View style={[styles.statDivider, { backgroundColor: cardBorder }]} />
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{hiddenSongs.length}</Text>
+                  <Text style={[styles.statLabel, { color: colors.textMuted }]}>Hidden</Text>
+                </View>
               </View>
-            </Pressable>
-            <Text style={styles.profileEmail}>Offline Mode · Privacy First</Text>
+            </View>
           </View>
 
-          {/* Quick Actions */}
+          {/* ── Quick pins ── */}
           <View style={styles.quickActions}>
-            <Pressable style={styles.quickAction} onPress={handleExport}>
-              <Ionicons name="download-outline" size={26} color="#A78BFA" />
-              <Text style={styles.quickActionText}>Export</Text>
-            </Pressable>
-            <Pressable style={styles.quickAction} onPress={handleImport}>
-              <Ionicons name="cloud-upload-outline" size={26} color="#F472B6" />
-              <Text style={styles.quickActionText}>Import</Text>
-            </Pressable>
-            <Pressable style={styles.quickAction}>
-              <Ionicons name="time-outline" size={26} color="#60A5FA" />
-              <Text style={styles.quickActionText}>History</Text>
-            </Pressable>
+            {(quickPins as string[]).map((pinId, slotIndex) => {
+              const item = PINNABLE_ITEMS[pinId as PinId];
+              if (!item) return null;
+              return (
+                <Pressable
+                  key={slotIndex}
+                  style={[styles.quickAction, { backgroundColor: cardBg, borderColor: cardBorder }]}
+                  onPress={() => {
+                    if (pinId === 'export') handleExport();
+                    else if (pinId === 'import') handleImport();
+                    else if (pinId === 'scan') handleImportLocalAudio();
+                    else setActiveSheet(pinId);
+                  }}
+                  onLongPress={() => setPinPickerSlot(slotIndex)}
+                  delayLongPress={400}
+                >
+                  <View style={[styles.quickIcon, { backgroundColor: item.iconColor + '22' }]}>
+                    <Ionicons name={item.icon} size={20} color={item.iconColor} />
+                  </View>
+                  <Text style={[styles.quickActionText, { color: colors.textPrimary }]}>{item.label}</Text>
+                  <View style={styles.quickEditHint}>
+                    <Ionicons name="ellipsis-horizontal" size={12} color={colors.textMuted} />
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
+          <Text style={[styles.quickHint, { color: colors.textMuted }]}>Hold any shortcut to customise</Text>
 
-          {/* Menu List */}
-          <View style={styles.menuList}>
+          {/* ── Section: Personalization ── */}
+          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>PERSONALIZATION</Text>
+          <View style={[styles.menuGroup, { backgroundColor: cardBg, borderColor: cardBorder }]}>
             <MenuRow icon="moon-outline" iconColor="#A78BFA" label="Appearance" onPress={() => setActiveSheet('appearance')} />
             <MenuRow icon="play-circle-outline" iconColor="#34C759" label="Playback" onPress={() => setActiveSheet('playback')} />
+            <MenuRow icon="radio-outline" iconColor="#FF6B6B" label="Mini Player" onPress={() => setActiveSheet('miniplayer')} />
             <MenuRow icon="folder-open-outline" iconColor="#FF9F0A" label="Library" onPress={() => setActiveSheet('library')} />
-            <MenuRow icon="globe-outline" iconColor="#30D158" label="Discovery" onPress={() => setActiveSheet('discovery')} />
+            <MenuRow icon="globe-outline" iconColor="#30D158" label="Discovery" onPress={() => setActiveSheet('discovery')} isLast />
+          </View>
+
+          {/* ── Section: System ── */}
+          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>SYSTEM</Text>
+          <View style={[styles.menuGroup, { backgroundColor: cardBg, borderColor: cardBorder }]}>
             <MenuRow
               icon="desktop-outline" iconColor="#0A84FF" label="Desktop Connect"
               badge={desktopConnectEnabled ? 'On' : 'Off'}
               onPress={() => setActiveSheet('desktop')}
             />
             <MenuRow icon="trash-outline" iconColor="#FF453A" label="Data" onPress={() => setActiveSheet('data')} />
-            <MenuRow icon="information-circle-outline" iconColor="#636366" label="About" onPress={() => setActiveSheet('about')} isLast />
+            <MenuRow icon="information-circle-outline" iconColor="#8E8E93" label="About" onPress={() => setActiveSheet('about')} isLast />
+          </View>
+
+          {/* ── Section: Tools ── */}
+          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>TOOLS</Text>
+          <View style={[styles.menuGroup, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+            <MenuRow icon="download-outline" iconColor="#A78BFA" label="Export Library" onPress={handleExport} />
+            <MenuRow icon="cloud-upload-outline" iconColor="#F472B6" label="Import Backup" onPress={handleImport} />
+            <MenuRow icon="musical-notes-outline" iconColor="#60A5FA" label="Scan Local Audio" onPress={handleImportLocalAudio} isLast />
           </View>
 
         </ScrollView>
@@ -581,63 +773,60 @@ const SettingsScreen: React.FC<Props> = () => {
         </View>
       </BottomSheet>
 
-      <BottomSheet visible={activeSheet === 'library'} title="Library" onClose={closeSheet}>
+      <BottomSheet visible={activeSheet === 'miniplayer'} title="Mini Player" onClose={closeSheet}>
         <SettingsRow
-          icon="folder-outline"
-          label={isImporting ? 'Importing…' : 'Import Local Audio'}
-          value={isImporting ? '' : 'Tap to scan'}
-          onPress={handleImportLocalAudio}
+          icon="image-outline"
+          label="Dynamic Island Background"
+          value={MINI_BG_LABELS[settings.islandBgMode as MiniBgMode] ?? 'Album Art'}
+          onPress={() => {
+            const next = MINI_BG_MODES[(MINI_BG_MODES.indexOf(settings.islandBgMode as MiniBgMode) + 1) % MINI_BG_MODES.length];
+            settings.setIslandBgMode(next);
+          }}
         />
+        <SettingsRow
+          icon="albums-outline"
+          label="Classic Bar Background"
+          value={MINI_BG_LABELS[settings.classicBarBgMode as MiniBgMode] ?? 'Album Art'}
+          onPress={() => {
+            const next = MINI_BG_MODES[(MINI_BG_MODES.indexOf(settings.classicBarBgMode as MiniBgMode) + 1) % MINI_BG_MODES.length];
+            settings.setClassicBarBgMode(next);
+          }}
+        />
+        {settings.navBarStyle === 'classic' && (
+          <SettingsRow
+            icon="layers-outline" label="Mini Player Style"
+            value={settings.miniPlayerStyle === 'island' ? 'Dynamic Island' : 'Classic Bar'}
+            onPress={() => settings.setMiniPlayerStyle(settings.miniPlayerStyle === 'island' ? 'bar' : 'island')}
+          />
+        )}
+        <SettingsRowSwitch icon="musical-note-outline" label="Play in Mini Player Only" value={settings.playInMiniPlayerOnly} onToggle={settings.setPlayInMiniPlayerOnly} />
+      </BottomSheet>
+
         <SettingsRow
           icon="color-palette-outline" label="Background Theme"
           value={
             settings.libraryBackgroundMode === 'daily' ? 'Most Played Yesterday' :
             settings.libraryBackgroundMode === 'current' ? 'Current Song' :
             settings.libraryBackgroundMode === 'black' ? 'Pure Black' :
-            settings.libraryBackgroundMode === 'grey' ? 'Spotify Grey' : 'Aurora'
+            settings.libraryBackgroundMode === 'grey' ? 'Spotify Grey' :
+            settings.libraryBackgroundMode === 'theme-blue' ? 'LuvLyrics Blue' :
+            settings.libraryBackgroundMode === 'purest-black' ? 'Purest Black' :
+            settings.libraryBackgroundMode === 'theme-subtle' ? 'Subtle Dark' : 'Aurora'
           }
           onPress={() => {
-            const modes: ('daily' | 'current' | 'aurora' | 'black' | 'grey')[] = ['daily', 'current', 'aurora', 'black', 'grey'];
+            const modes: ('daily' | 'current' | 'aurora' | 'black' | 'grey' | 'theme-blue' | 'purest-black' | 'theme-subtle')[] = [
+              'daily', 'current', 'aurora', 'black', 'grey', 'theme-blue', 'purest-black', 'theme-subtle'
+            ];
             const next = modes[(modes.indexOf(settings.libraryBackgroundMode) + 1) % modes.length];
             settings.setLibraryBackgroundMode(next);
           }}
         />
-        <SettingsRow
-          icon="eye-off-outline" label="Hidden Songs"
-          value={hiddenSongs.length > 0 ? `${hiddenSongs.length} songs` : 'None'}
-          onPress={() => { fetchHiddenSongs(); setHiddenSongsVisible(true); }}
+        <SettingsRowSwitch
+          icon="color-filter-outline"
+          label="Apply Theme to Other Pages"
+          value={settings.applyThemeToOtherPages}
+          onToggle={settings.setApplyThemeToOtherPages}
         />
-        <SettingsRow
-          icon="save-outline" label="Download Location"
-          value={settings.downloadDirectoryUri ? 'Custom Folder' : 'Default'}
-          onPress={handleSetDownloadLocation}
-        />
-      </BottomSheet>
-
-      <BottomSheet visible={activeSheet === 'discovery'} title="Discovery" onClose={closeSheet}>
-        <SettingsRow icon="language-outline" label="Music Languages" value="Configure Weights" onPress={() => { closeSheet(); setLuvsLangModalVisible(true); }} />
-      </BottomSheet>
-
-      <BottomSheet visible={activeSheet === 'desktop'} title="Desktop Connect" onClose={closeSheet}>
-        <SettingsRowSwitch icon="power-outline" label="Enable Desktop Connect" value={desktopConnectEnabled} onToggle={setDesktopConnectEnabled} />
-        <SettingsRow
-          icon="qr-code-outline" label="Trusted Pairing"
-          value={trustedDesktops.length > 0 ? `${trustedDesktops.length} trusted` : 'Not paired'}
-          onPress={() => setPairingModalVisible(true)}
-        />
-        <SettingsRowSwitch icon="cloud-download-outline" label="Allow Desktop Downloads" value={allowDesktopDownloads} onToggle={setAllowDesktopDownloads} />
-      </BottomSheet>
-
-      <BottomSheet visible={activeSheet === 'data'} title="Data" onClose={closeSheet}>
-        <SettingsRow icon="close-circle-outline" label="Clear Imported Audio" onPress={handleClearImported} />
-        <SettingsRow icon="trash-outline" label="Clear All Data" onPress={handleClearData} />
-      </BottomSheet>
-
-      <BottomSheet visible={activeSheet === 'about'} title="About" onClose={closeSheet}>
-        <SettingsRow icon="information-circle-outline" label="Version" value="1.0.0" showChevron={false} />
-        <SettingsRow icon="shield-outline" label="Privacy Policy" onPress={() => {}} />
-      </BottomSheet>
-
       {/* ── Alerts & Utility Modals ──────────────────────────────────────────── */}
 
       <CustomAlert
@@ -803,47 +992,73 @@ const SettingsScreen: React.FC<Props> = () => {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1 },
   safeArea: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingBottom: 100 },
+  content: { paddingHorizontal: 16, paddingBottom: 120 },
 
-  // Profile
-  profileSection: { alignItems: 'center', marginTop: 24, marginBottom: 28 },
+  // Screen title
+  screenTitle: { fontSize: 34, fontWeight: '700', letterSpacing: -0.5, marginTop: 12, marginBottom: 20 },
+
+  // Profile card
+  profileCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    borderRadius: 20, padding: 16, marginBottom: 14,
+    borderWidth: 1,
+  },
   avatar: {
-    width: 84, height: 84, borderRadius: 42, backgroundColor: Colors.card,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 14,
-    position: 'relative', borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)',
+    width: 72, height: 72, borderRadius: 36,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, flexShrink: 0,
   },
-  avatarImage: { width: '100%', height: '100%', borderRadius: 42 },
+  avatarImage: { width: '100%', height: '100%', borderRadius: 36 },
   editBadge: {
-    position: 'absolute', bottom: -2, right: -2, width: 28, height: 28,
-    borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: Colors.background,
+    position: 'absolute', bottom: -2, right: -2, width: 24, height: 24,
+    borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2,
   },
-  nameContainer: { flexDirection: 'row', alignItems: 'center' },
-  profileName: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary },
-  profileEmail: { fontSize: 12, color: Colors.textSecondary, marginTop: 4 },
+  profileRight: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  profileName: { fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
+  profileSub: { fontSize: 12, marginBottom: 12 },
+  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 0 },
+  statItem: { flex: 1, alignItems: 'center' },
+  statNumber: { fontSize: 17, fontWeight: '700', letterSpacing: -0.4 },
+  statLabel: { fontSize: 11, marginTop: 1 },
+  statDivider: { width: 1, height: 28, opacity: 0.5 },
 
   // Quick Actions
-  quickActions: { flexDirection: 'row', gap: 10, marginBottom: 28 },
+  quickActions: { flexDirection: 'row', gap: 10, marginBottom: 6 },
   quickAction: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 18,
-    padding: 16, alignItems: 'center', justifyContent: 'center',
-    height: 96, gap: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
-  },
-  quickActionText: { fontSize: 12, fontWeight: '600', color: Colors.textPrimary },
-
-  // Menu List
-  menuList: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16,
-    overflow: 'hidden',
+    flex: 1, borderRadius: 16,
+    paddingVertical: 14, paddingHorizontal: 12,
+    alignItems: 'center', gap: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  quickIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  quickActionText: { fontSize: 13, fontWeight: '600' },
+  quickActionSub: { fontSize: 11 },
+  quickEditHint: { position: 'absolute', top: 8, right: 10 },
+  quickHint: { fontSize: 11, textAlign: 'center', marginBottom: 24, opacity: 0.7 },
+
+  // Pin picker
+  pinSectionLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 0.5, marginTop: 12, marginBottom: 4, marginLeft: 2 },
+  pinPickerRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth },
+  pinPickerLabel: { flex: 1, fontSize: 15, fontWeight: '500' },
+  pinPickerUsed: { fontSize: 12, marginRight: 4 },
+
+  // Section label
+  sectionLabel: {
+    fontSize: 12, fontWeight: '600', letterSpacing: 0.6,
+    marginBottom: 8, marginLeft: 4,
+  },
+
+  // Menu groups
+  menuGroup: {
+    borderRadius: 16, overflow: 'hidden', borderWidth: 1, marginBottom: 20,
   },
   menuRow: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 14,
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth, gap: 14,
   },
   menuRowLast: { borderBottomWidth: 0 },
   menuIcon: { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },

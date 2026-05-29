@@ -6,7 +6,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { Song } from '../types/song';
-import { getAllSongsWithLyrics, insertSong, clearAllData } from '../database/queries';
+import { getAllSongsWithLyrics, insertSong } from '../database/queries';
 
 // Export format version for compatibility
 const EXPORT_VERSION = '1.0';
@@ -24,6 +24,7 @@ const EXPORT_VERSION = '1.0';
  */
 export function sanitizeFilename(name: string): string {
   const RESERVED = /[\\/:*?"<>|]/g;
+  // eslint-disable-next-line no-control-regex
   const CONTROL = /[\x00-\x1f\x7f]/g;
   const WINDOWS_DEVICE_NAME =
     /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;

@@ -1,6 +1,5 @@
 /**
  * LyricFlow - Horizontal Gradient Picker Component
- * Scrollable row of gradient options for Add/Edit screen
  */
 
 import React, { memo } from 'react';
@@ -8,33 +7,24 @@ import { StyleSheet, View, Text, Pressable, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { GRADIENTS } from '../constants/gradients';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../contexts/ThemeContext';
 
 interface GradientPickerProps {
   selectedId: string;
   onSelect: (gradientId: string) => void;
 }
 
-export const GradientPicker: React.FC<GradientPickerProps> = memo(({
-  selectedId,
-  onSelect,
-}) => {
+export const GradientPicker: React.FC<GradientPickerProps> = memo(({ selectedId, onSelect }) => {
+  const colors = useThemeColors();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>VISUAL THEME</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <Text style={[styles.label, { color: colors.textSecondary }]}>VISUAL THEME</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {GRADIENTS.map((gradient) => {
           const isSelected = gradient.id === selectedId;
           return (
-            <Pressable
-              key={gradient.id}
-              style={styles.item}
-              onPress={() => onSelect(gradient.id)}
-            >
+            <Pressable key={gradient.id} style={styles.item} onPress={() => onSelect(gradient.id)}>
               <View style={[styles.thumbnailContainer, isSelected && styles.selected]}>
                 <LinearGradient
                   colors={gradient.colors as any}
@@ -48,7 +38,7 @@ export const GradientPicker: React.FC<GradientPickerProps> = memo(({
                   </View>
                 )}
               </View>
-              <Text style={[styles.name, isSelected && styles.nameSelected]}>
+              <Text style={[styles.name, { color: isSelected ? colors.textPrimary : colors.textSecondary }]}>
                 {gradient.name}
               </Text>
             </Pressable>
@@ -62,51 +52,15 @@ export const GradientPicker: React.FC<GradientPickerProps> = memo(({
 GradientPicker.displayName = 'GradientPicker';
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 12,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    letterSpacing: 1,
-  },
-  scrollContent: {
-    gap: 16,
-    paddingRight: 24,
-  },
-  item: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  thumbnailContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  selected: {
-    borderColor: '#fff',
-  },
-  thumbnail: {
-    flex: 1,
-  },
-  checkContainer: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  name: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-  },
-  nameSelected: {
-    color: Colors.textPrimary,
-  },
+  container: { gap: 12 },
+  label: { fontSize: 12, fontWeight: '600', letterSpacing: 1 },
+  scrollContent: { gap: 16, paddingRight: 24 },
+  item: { alignItems: 'center', gap: 8 },
+  thumbnailContainer: { width: 96, height: 96, borderRadius: 16, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
+  selected: { borderColor: '#fff' },
+  thumbnail: { flex: 1 },
+  checkContainer: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
+  name: { fontSize: 13, fontWeight: '500' },
 });
 
 export default GradientPicker;

@@ -1,28 +1,55 @@
 import React, { createContext, useContext, useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { usePlayerStore, playerControls } from '../store/playerStore';
 import { usePositionStore } from '../store/positionStore';
 import { shouldPreservePlayingStateDuringSeek } from './playerStatusGuard';
 import { positionSV, durationSV, isSeeking } from '../playback/positionBus';
+import { NativeAudioPlayer } from '../services/NativeAudioPlayer';
 
 const PlayerContext = createContext<any>(null);
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const player = useAudioPlayer();
   const lastSeekAtRef = useRef(0);
   const lastZustandUpdateRef = useRef(0);
   const endHandledForSongIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (player) {
-        playerControls.play = () => setTimeout(() => player.play(), 0);
-        playerControls.pause = () => setTimeout(() => player.pause(), 0);
-        playerControls.seekTo = (pos: number) => {
-          lastSeekAtRef.current = Date.now();
-          setTimeout(() => player.seekTo(pos), 0);
-        };
+  // Call expo-audio hooks unconditionally to satisfy React Hook rules; ignored on Android in favor of NativeAudioPlayer
+  const iosPlayer = useAudioPlayer();
+  const iosStatus = useAudioPlayerStatus(iosPlayer);
+
+  // Android Native Player Adapter
+  const androidPlayer = useRef({
+    play: () => NativeAudioPlayer.play(),
+    pause: () => NativeAudioPlayer.pause(),
+    seekTo: (time: number) => {
+      lastSeekAtRef.current = Date.now();
+      NativeAudioPlayer.seekTo(time);
+    },
+    replace: (source: any) => {
+      const uri = typeof source === 'string' ? source : source?.uri;
+      if (!uri) return;
+      const store = usePlayerStore.getState();
+      const current = store.currentSong;
+      const metadata = {
+        title: current?.title || 'Unknown Title',
+        artist: current?.artist || 'Unknown Artist',
+        album: current?.album || '',
+        artworkUri: current?.coverImageUri || ''
+      };
+      NativeAudioPlayer.load(uri, metadata);
+    },
+    setActiveForLockScreen: (active: boolean, metadata?: any, _options?: any) => {
+      if (active && metadata) {
+        NativeAudioPlayer.updateMetadata({
+          title: metadata.title || 'Unknown Title',
+          artist: metadata.artist || 'Unknown Artist',
+          album: metadata.albumTitle || '',
+          artworkUri: metadata.artworkUrl || ''
+        });
+      }
     }
-  }, [player]);
+  }).current;
 
   const currentSong = usePlayerStore(state => state.currentSong);
   const currentSongId = usePlayerStore(state => state.currentSongId);
@@ -33,124 +60,185 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [currentSongId]);
 
+  // Binding playerControls Play/Pause/Seek globally
   useEffect(() => {
-    if (player && currentSong) {
-      // Set metadata and enable lock screen controls
-      player.setActiveForLockScreen(true, {
-        title: currentSong.title,
-        artist: currentSong.artist || 'Unknown Artist',
-        artworkUrl: currentSong.coverImageUri,
-        albumTitle: currentSong.album || ''
-      }, {
-        showSeekBackward: true,
-        showSeekForward: true
-      });
-    } else if (player && !currentSong) {
-        // Stop playback if current song is cleared (e.g. deleted)
-        // Wrap in setTimeout to avoid "accessed on wrong thread" issues during state transitions
-        setTimeout(() => {
-            player.pause();
-        }, 0);
+    if (Platform.OS === 'android') {
+      playerControls.play = () => setTimeout(() => androidPlayer.play(), 0);
+      playerControls.pause = () => setTimeout(() => androidPlayer.pause(), 0);
+      playerControls.seekTo = (pos: number) => {
+        lastSeekAtRef.current = Date.now();
+        setTimeout(() => androidPlayer.seekTo(pos), 0);
+      };
+    } else if (iosPlayer) {
+      playerControls.play = () => setTimeout(() => iosPlayer.play(), 0);
+      playerControls.pause = () => setTimeout(() => iosPlayer.pause(), 0);
+      playerControls.seekTo = (pos: number) => {
+        lastSeekAtRef.current = Date.now();
+        setTimeout(() => iosPlayer.seekTo(pos), 0);
+      };
     }
-  }, [player, currentSong]);
+  }, [iosPlayer, androidPlayer]);
 
-  // Remote Commands
+  // Reacting to active song metadata changes
   useEffect(() => {
-    if (!player) return;
+    if (Platform.OS === 'android') {
+      if (currentSong) {
+        androidPlayer.setActiveForLockScreen(true, {
+          title: currentSong.title,
+          artist: currentSong.artist || 'Unknown Artist',
+          artworkUrl: currentSong.coverImageUri,
+          albumTitle: currentSong.album || ''
+        });
+      } else {
+        setTimeout(() => {
+          androidPlayer.pause();
+        }, 0);
+      }
+    } else if (iosPlayer) {
+      if (currentSong) {
+        iosPlayer.setActiveForLockScreen(true, {
+          title: currentSong.title,
+          artist: currentSong.artist || 'Unknown Artist',
+          artworkUrl: currentSong.coverImageUri,
+          albumTitle: currentSong.album || ''
+        }, {
+          showSeekBackward: true,
+          showSeekForward: true
+        });
+      } else {
+        setTimeout(() => {
+          iosPlayer.pause();
+        }, 0);
+      }
+    }
+  }, [iosPlayer, currentSong, androidPlayer]);
+
+  // iOS-only: Remote Commands and Status hooks integration
+  useEffect(() => {
+    if (Platform.OS === 'android' || !iosPlayer) return;
     
-    // Listen for remote Next/Prev commands from native side
-    const subscription = (player as any).addListener('remoteCommand', (event: { command: string }) => {
+    const subscription = (iosPlayer as any).addListener('remoteCommand', (event: { command: string }) => {
       if (__DEV__) console.log('[PlayerContext] Remote command received:', event.command);
       const store = usePlayerStore.getState();
       if (event.command === 'next') {
-        store.nextInPlaylist();
+        store.nextInPlaylist().catch(() => {});
       } else if (event.command === 'previous') {
         store.previousInPlaylist();
       }
     });
 
     return () => subscription.remove();
-  }, [player]);
-
-  const status = useAudioPlayerStatus(player);
+  }, [iosPlayer]);
 
   useEffect(() => {
-    if (status) {
-      const { currentTime, duration, playing, playbackState, isBuffering, isLoaded, didJustFinish } = status;
+    if (Platform.OS === 'android' || !iosStatus) return;
+    
+    const { currentTime, duration, playing, playbackState, isBuffering, isLoaded, didJustFinish } = iosStatus;
+    const store = usePlayerStore.getState();
 
+    if (!isSeeking.value) {
+      positionSV.value = currentTime;
+    }
+    durationSV.value = duration;
+
+    const now = Date.now();
+    if (now - lastZustandUpdateRef.current >= 500) {
+      lastZustandUpdateRef.current = now;
+      const posStore = usePositionStore.getState();
+      if (posStore.position !== currentTime || posStore.duration !== duration) {
+        posStore.updateProgress(currentTime, duration);
+      }
+    }
+
+    const justSought = Date.now() - lastSeekAtRef.current < 1500;
+    const activeSongId = store.currentSongId;
+    const isNearEndFallback =
+      !didJustFinish &&
+      store.isPlaying &&
+      isLoaded &&
+      !isBuffering &&
+      !playing &&
+      durationSV.value > 0 &&
+      positionSV.value >= Math.max(0, durationSV.value - 0.35);
+    const shouldAdvance =
+      !justSought &&
+      (didJustFinish || isNearEndFallback) &&
+      !!activeSongId &&
+      endHandledForSongIdRef.current !== activeSongId;
+
+    if (shouldAdvance) {
+      endHandledForSongIdRef.current = activeSongId;
+      store.setIsPlaying(true);
+      store.nextInPlaylist().catch(() => {});
+      return;
+    }
+
+    if (store.isPlaying !== playing) {
+      if (shouldPreservePlayingStateDuringSeek({ playing, playbackState, isBuffering, isLoaded })) {
+        // Preserve state
+      } else {
+        store.setIsPlaying(playing);
+      }
+    }
+  }, [iosStatus]);
+
+  // Android-only: NativeAudioPlayer subscriptions integration
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const statusSub = NativeAudioPlayer.addListener('onPlaybackStatus', (event: any) => {
+      const { position, duration, isPlaying, didJustFinish } = event;
       const store = usePlayerStore.getState();
 
-      // Write to shared values directly — no React re-render
       if (!isSeeking.value) {
-        positionSV.value = currentTime;
+        positionSV.value = position;
       }
       durationSV.value = duration;
 
-      // Throttled Zustand update for non-animation consumers (max 2/sec)
       const now = Date.now();
       if (now - lastZustandUpdateRef.current >= 500) {
         lastZustandUpdateRef.current = now;
         const posStore = usePositionStore.getState();
-        // Guard: only write if values actually changed
-        if (
-          posStore.position !== currentTime ||
-          posStore.duration !== duration
-        ) {
-          posStore.updateProgress(currentTime, duration);
+        if (posStore.position !== position || posStore.duration !== duration) {
+          posStore.updateProgress(position, duration);
         }
       }
 
-      const justSought = Date.now() - lastSeekAtRef.current < 1500;
       const activeSongId = store.currentSongId;
-      const isNearEndFallback =
-        !didJustFinish &&
-        store.isPlaying &&
-        isLoaded &&
-        !isBuffering &&
-        !playing &&
-        durationSV.value > 0 &&
-        positionSV.value >= Math.max(0, durationSV.value - 0.35);
-      const shouldAdvance =
-        !justSought &&
-        (didJustFinish || isNearEndFallback) &&
-        !!activeSongId &&
-        endHandledForSongIdRef.current !== activeSongId;
+      const justSought = Date.now() - lastSeekAtRef.current < 1500;
+      const shouldAdvance = didJustFinish && !!activeSongId && endHandledForSongIdRef.current !== activeSongId;
 
       if (shouldAdvance) {
         endHandledForSongIdRef.current = activeSongId;
         store.setIsPlaying(true);
-        if (__DEV__) console.log(`[PlayerContext] Song finished (${didJustFinish ? 'didJustFinish' : 'nearEndFallback'}), playing next...`);
-        store.nextInPlaylist();
+        store.nextInPlaylist().catch(() => {});
         return;
       }
 
-      if (store.isPlaying !== playing) {
-        if (
-          shouldPreservePlayingStateDuringSeek({
-            playing,
-            playbackState,
-            isBuffering,
-            isLoaded,
-          })
-        ) {
-          // Keep existing state (likely "playing") to avoid button flicker
-        } else {
-          // Guard: only write if the value has actually changed to avoid
-          // triggering unnecessary Zustand subscriber re-renders.
-          if (store.isPlaying !== playing) {
-            store.setIsPlaying(playing);
-          }
-        }
+      if (store.isPlaying !== isPlaying) {
+        store.setIsPlaying(isPlaying);
       }
+    });
 
-      // Use didJustFinish — playbackState values vary by platform:
-      // Android emits "ended", iOS emits via AVPlayerItemDidPlayToEndTime.
-      // didJustFinish is the only reliable cross-platform signal.
-      
-    }
-  }, [status]);
+    const commandSub = NativeAudioPlayer.addListener('onRemoteCommand', (event: any) => {
+      if (__DEV__) console.log('[PlayerContext] Android native remote command:', event.command);
+      const store = usePlayerStore.getState();
+      if (event.command === 'next') {
+        store.nextInPlaylist().catch(() => {});
+      } else if (event.command === 'previous') {
+        store.previousInPlaylist();
+      }
+    });
 
-  return <PlayerContext.Provider value={player}>{children}</PlayerContext.Provider>;
+    return () => {
+      statusSub.remove();
+      commandSub.remove();
+    };
+  }, []);
+
+  const playerValue = Platform.OS === 'android' ? androidPlayer : iosPlayer;
+
+  return <PlayerContext.Provider value={playerValue}>{children}</PlayerContext.Provider>;
 };
 
 export const usePlayer = () => useContext(PlayerContext);

@@ -11,13 +11,12 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Song } from '../types/song';
-import { getGradientColors, getGradientForSong } from '../constants/gradients';
+import { getGradientForSong } from '../constants/gradients';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COVER_SIZE = 220;
-// We want to see part of the next/prev covers
-const SPACING = 20; 
-const FULL_ITEM_WIDTH = COVER_SIZE + SPACING; 
+// const SPACING = 20; 
+// const FULL_ITEM_WIDTH = COVER_SIZE + SPACING; 
 
 interface CoverFlowProps {
   currentSong: Song | null;
@@ -140,7 +139,7 @@ export const CoverFlow: React.FC<CoverFlowProps> = ({
   // Reset position when song changes
   useEffect(() => {
     translateX.value = 0;
-  }, [currentSong?.id]);
+  }, [currentSong?.id, translateX]);
 
   const panGesture = Gesture.Pan()
     .activeOffsetX([-10, 10])

@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { usePlayerStore } from '../store/playerStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { useThemeColors, useIsDark } from '../contexts/ThemeContext';
 
 export const ModernPillTabBar: React.FC<BottomTabBarProps> = ({
   state,
@@ -18,89 +19,89 @@ export const ModernPillTabBar: React.FC<BottomTabBarProps> = ({
 }) => {
   const coverImageUri = usePlayerStore(s => s.currentSong?.coverImageUri);
   const isDynamicIsland = useSettingsStore(s => s.miniPlayerStyle === 'island');
-  
+  const isDark = useIsDark();
+  const colors = useThemeColors();
+
   // Completely hide tab bar on Luvs
   const currentRoute = state.routes[state.index];
   if (currentRoute.name === 'Luvs') {
     return null;
   }
 
+  const activeIconColor = isDark ? '#FFFFFF' : colors.textPrimary;
+  const inactiveIconColor = isDark ? 'rgba(255,255,255,0.45)' : colors.textMuted;
+
+  const pillBg = isDark ? '#0A0A0C' : '#FFFFFF';
+  const overlayColor = isDark ? '#0A0A0C' : '#FFFFFF';
+  const overlayOpacity = isDark ? 0.90 : 0.82;
+  const fallbackBg = isDark ? 'rgba(10,10,12,0.98)' : 'rgba(255,255,255,0.98)';
+  const gradientColors: [string, string] = isDark
+    ? ['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.85)']
+    : ['rgba(255,255,255,0.1)', 'rgba(248,248,252,0.5)'];
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+
   return (
     <View style={styles.container}>
-      <View style={styles.pillContainer}>
+      <View style={[styles.pillContainer, { backgroundColor: pillBg, borderColor }]}>
         {/* Dynamic Background */}
         <View style={StyleSheet.absoluteFill}>
-            {isDynamicIsland && coverImageUri ? (
-              <ImageBackground
-                source={{ uri: coverImageUri }}
-                style={StyleSheet.absoluteFill}
-                blurRadius={40}
-              >
-                {/* Dark overlay for blurred image */}
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1E1E1E' }]} />
-              </ImageBackground>
-            ) : (
-              // Fallback dark background
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)' }]} />
-            )}
-            
-            {/* Vignette Overlay for readability (always present) */}
-            <LinearGradient
-                colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.9)']}
-                style={StyleSheet.absoluteFill}
-            />
+          {isDynamicIsland && coverImageUri ? (
+            <ImageBackground
+              source={{ uri: coverImageUri }}
+              style={StyleSheet.absoluteFill}
+              blurRadius={40}
+            >
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: overlayColor, opacity: overlayOpacity }]} />
+            </ImageBackground>
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: fallbackBg }]} />
+          )}
+
+          <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
         </View>
 
-        <BlurView intensity={20} tint="dark" style={styles.blur}>
-            <View style={styles.tabsRow}>
-              {state.routes.map((route, index) => {
-                const { options } = descriptors[route.key];
-                const isFocused = state.index === index;
+        <BlurView intensity={60} tint={isDark ? 'dark' : 'light'} style={styles.blur}>
+          <View style={styles.tabsRow}>
+            {state.routes.map((route, index) => {
+              const { options } = descriptors[route.key];
+              const isFocused = state.index === index;
 
-                // label removed as unused
+              const onPress = async () => {
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                });
 
-                const onPress = async () => {
-                  const event = navigation.emit({
-                    type: 'tabPress',
-                    target: route.key,
-                    canPreventDefault: true,
-                  });
+                if (!isFocused && !event.defaultPrevented) {
+                  navigation.navigate(route.name, route.params);
 
-                  if (!isFocused && !event.defaultPrevented) {
-                    navigation.navigate(route.name, route.params);
-                    
-                    // Trigger refresh if navigating to Luvs AND feed is empty
-                    if (route.name === 'Luvs') {
-                        const { feedSongs } = (await import('../store/luvsFeedStore')).useLuvsFeedStore.getState();
-                        if (feedSongs.length === 0) {
-                            import('../services/LuvsRecommendationEngine').then(m => m.luvsRecommendationEngine.refreshRecommendation()).catch(console.error);
-                        }
+                  if (route.name === 'Luvs') {
+                    const { feedSongs } = (await import('../store/luvsFeedStore')).useLuvsFeedStore.getState();
+                    if (feedSongs.length === 0) {
+                      import('../services/LuvsRecommendationEngine').then(m => m.luvsRecommendationEngine.refreshRecommendation()).catch(console.error);
                     }
-                  } else if (isFocused && route.name === 'Luvs') {
-                    // Refresh even if already focused (user tapping the button again)
-                    import('../services/LuvsRecommendationEngine').then(m => m.luvsRecommendationEngine.refreshRecommendation()).catch(console.error);
                   }
-                };
+                } else if (isFocused && route.name === 'Luvs') {
+                  import('../services/LuvsRecommendationEngine').then(m => m.luvsRecommendationEngine.refreshRecommendation()).catch(console.error);
+                }
+              };
 
-                return (
-                  <Pressable
-                    key={route.key}
-                    onPress={onPress}
-                    style={[
-                      styles.tabItem,
-                      // Removed background color style for active state
-                      // isFocused && styles.tabItemActive, 
-                    ]}
-                  >
-                    {options.tabBarIcon?.({
-                      focused: isFocused,
-                      color: isFocused ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
-                      size: 24,
-                    })}
-                  </Pressable>
-                );
-              })}
-            </View>
+              return (
+                <Pressable
+                  key={route.key}
+                  onPress={onPress}
+                  style={styles.tabItem}
+                >
+                  {options.tabBarIcon?.({
+                    focused: isFocused,
+                    color: isFocused ? activeIconColor : inactiveIconColor,
+                    size: 24,
+                  })}
+                </Pressable>
+              );
+            })}
+          </View>
         </BlurView>
       </View>
     </View>
@@ -123,13 +124,12 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     borderRadius: 32,
     overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.5,
     shadowRadius: 16,
     elevation: 24,
-    // Ensure background doesn't bleed
-    backgroundColor: '#000', 
   },
   blur: {
     overflow: 'hidden',

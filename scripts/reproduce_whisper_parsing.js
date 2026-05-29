@@ -1,7 +1,4 @@
 
-const NOISE_REGEX = /^(noise|machine|whirring|humming|brrr|clicking|silence|music|applause)$/i;
-
-
 // Refactored logic from whisperService.ts
 function parseWhisperResult(result) {
     const segments = [];

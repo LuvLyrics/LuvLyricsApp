@@ -18,7 +18,7 @@ function parseLRC(lrcContent: string): LyricLine[] {
   lrcContent.split('\n').forEach(line => {
     const match = line.match(regex);
     if (match) {
-      const minutes = parseInt(match[1]);
+      const minutes = parseInt(match[1], 10);
       const seconds = parseFloat(match[2]);
       const text = match[3].trim();
       if (text) {
@@ -156,11 +156,9 @@ function parseWhisperResult(result: any) {
 // -----------------------------------------------------------------------------
 async function runTest() {
   const assetsDir = path.join(__dirname, '../testing_assets');
-  const plainTextPath = path.join(assetsDir, 'gracieabramswithouttimestamp.txt');
   const truthPath = path.join(assetsDir, 'gracieabramslyricswithtimestamp.txt');
 
   console.log('Loading assets...');
-  const plainText = fs.readFileSync(plainTextPath, 'utf-8');
   const truthText = fs.readFileSync(truthPath, 'utf-8');
   
   const groundTruth = parseLRC(truthText);
@@ -180,7 +178,6 @@ async function runTest() {
   // ---------------------------------------------------------------------------
   console.log('\n--- COMPARISON REPORT ---');
   let matchCount = 0;
-  let driftSum = 0;
 
   // Simple comparison: Check if the parsed output roughly aligns with ground truth
   // Note: Since we generated Whisper FROM ground truth, checking alignment is circular 
@@ -201,7 +198,6 @@ async function runTest() {
       const parsed = parsedSegments[i];
       
       const drift = Math.abs((parsed.start) - (truth.time || 0));
-      driftSum += drift;
       
       console.log(`Line ${i+1}:`);
       console.log(`  Truth : [${truth.time?.toFixed(2)}] "${truth.text}"`);

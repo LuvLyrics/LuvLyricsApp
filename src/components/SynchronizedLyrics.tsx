@@ -210,6 +210,7 @@ const SynchronizedLyrics = forwardRef<SynchronizedLyricsRef, SynchronizedLyricsP
     let right = lyrics.length - 1;
     let result = -1;
     while (left <= right) {
+      // eslint-disable-next-line no-bitwise
       const mid = (left + right) >>> 1;
       const nextTs = lyrics[mid + 1]?.timestamp;
       if (et >= lyrics[mid].timestamp && (nextTs === undefined || et < nextTs)) {

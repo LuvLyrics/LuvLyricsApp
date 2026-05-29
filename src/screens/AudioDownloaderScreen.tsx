@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '../constants/colors';
+import { DarkColors } from '../constants/colors';
 import { usePlayerStore } from '../store/playerStore';
 import { useDownloadQueueStore } from '../store/downloadQueueStore';
 import { AudioDownloaderSearchTab } from './AudioDownloaderSearchTab';
@@ -42,25 +42,25 @@ export const AudioDownloaderScreen: React.FC<AudioDownloaderProps> = ({ navigati
 
     return (
         <View style={styles.container}>
-            {/* Background gradients */}
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#040008' }]} />
+            {/* Background gradients — app blue theme */}
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#030912' }]} />
             <LinearGradient
-                colors={['rgba(127,19,236,0.18)', 'transparent']}
+                colors={['rgba(47,140,255,0.16)', 'transparent']}
                 style={StyleSheet.absoluteFill}
                 start={{ x: 0, y: 0 }} end={{ x: 0.75, y: 0.65 }}
             />
             <LinearGradient
-                colors={['rgba(140,20,255,0.14)', 'transparent']}
+                colors={['rgba(30,100,220,0.12)', 'transparent']}
                 style={StyleSheet.absoluteFill}
                 start={{ x: 1, y: 1 }} end={{ x: 0.25, y: 0.35 }}
             />
             <LinearGradient
-                colors={['transparent', 'rgba(80,0,180,0.08)', 'transparent']}
+                colors={['transparent', 'rgba(10,50,140,0.07)', 'transparent']}
                 style={StyleSheet.absoluteFill}
                 start={{ x: 0, y: 0.55 }} end={{ x: 1, y: 0.45 }}
             />
             <LinearGradient
-                colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+                colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.65)']}
                 style={StyleSheet.absoluteFill}
                 start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
             />
@@ -140,12 +140,12 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     tabBtnActive: {
-        backgroundColor: 'rgba(127,19,236,0.55)',
+        backgroundColor: 'rgba(47,140,255,0.42)',
     },
     tabBtnText: { color: '#666', fontSize: 13, fontWeight: '600' },
     tabBtnTextActive: { color: '#fff' },
     badge: {
-        backgroundColor: Colors.primary,
+        backgroundColor: DarkColors.primary,
         borderRadius: 10,
         minWidth: 18,
         height: 18,

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Alert } from 'react-native';
+// import { ViewStyle } from 'react-native'; // Currently unused
 import * as FileSystem from 'expo-file-system/legacy';
 import { useDownloadQueueStore } from '../store/downloadQueueStore';
 import { useSongsStore } from '../store/songsStore';
@@ -165,9 +165,9 @@ export const BackgroundDownloader = () => {
                             if (__DEV__) console.log(`[BackgroundDownloader] ❌ No lyrics found for ${item.song.title}`);
                             updateItem(item.id, { stageStatus: 'No lyrics found' });
                         }
-                    } catch (_lyricsError: unknown) {
-                         if (__DEV__) console.warn(`[BackgroundDownloader] Lyrics processing failed`);
-                         // Continue saving song even if lyrics fail
+                } catch {
+                     if (__DEV__) console.warn(`[BackgroundDownloader] Lyrics processing failed`);
+                     // Continue saving song even if lyrics fail
                     }
                 }
 
@@ -201,7 +201,7 @@ export const BackgroundDownloader = () => {
                         const { addToQueue } = useLyricsScanQueueStore.getState();
                         addToQueue(newSong, true); // forceSynced = true
                         if (__DEV__) console.log(`[BackgroundDownloader] Enqueued ${newSong.title} for synced lyrics retry`);
-                    } catch (_retryError: unknown) {
+                    } catch {
                         if (__DEV__) console.warn(`[BackgroundDownloader] Failed to enqueue for lyrics retry`);
                     }
                 }
@@ -220,7 +220,7 @@ export const BackgroundDownloader = () => {
                         );
                         // Trigger store refresh
                         await usePlaylistStore.getState().fetchPlaylists();
-                    } catch (_playlistError: unknown) {
+                    } catch {
                          if (__DEV__) console.error(`[BackgroundDownloader] Failed to add to playlist`);
                     }
                 }

@@ -5,7 +5,7 @@ import Animated, {
   withTiming,
   SharedValue,
 } from 'react-native-reanimated';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../contexts/ThemeContext';
 import { useSettingsStore, FONT_SIZE_MAP, LINE_SPACING_MAP } from '../store/settingsStore';
 
 interface LyricsLineProps {
@@ -21,6 +21,7 @@ export const LyricsLine: React.FC<LyricsLineProps> = memo(({
   index,
   onPress,
 }) => {
+  const colors = useThemeColors();
   const lyricsFontSize = useSettingsStore(state => state.lyricsFontSize);
   const lineSpacing = useSettingsStore(state => state.lineSpacing);
   const fontSizes = FONT_SIZE_MAP[lyricsFontSize];
@@ -31,6 +32,11 @@ export const LyricsLine: React.FC<LyricsLineProps> = memo(({
   const inactiveFontSize = fontSizes.other;
   const activeLineHeight = fontSizes.current * lh;
   const inactiveLineHeight = fontSizes.other * lh;
+
+  // Capture color strings as primitives so worklet can use them
+  const colorCurrent = colors.lyricCurrent;
+  const colorPrevious = colors.lyricPrevious;
+  const colorUpcoming = colors.lyricUpcoming;
 
   const animatedStyle = useAnimatedStyle(() => {
     const isActive = activeIndexSV.value === index;
@@ -48,9 +54,7 @@ export const LyricsLine: React.FC<LyricsLineProps> = memo(({
       fontSize: isActive ? activeFontSize : inactiveFontSize,
       lineHeight: isActive ? activeLineHeight : inactiveLineHeight,
       fontWeight: (isActive ? '800' : '700') as '800' | '700',
-      color: isActive
-        ? Colors.lyricCurrent
-        : isPrevious ? Colors.lyricPrevious : Colors.lyricUpcoming,
+      color: isActive ? colorCurrent : isPrevious ? colorPrevious : colorUpcoming,
       textShadowRadius: isActive ? 10 : 0,
       textShadowColor: isActive ? 'rgba(255,255,255,0.3)' : 'transparent',
     };

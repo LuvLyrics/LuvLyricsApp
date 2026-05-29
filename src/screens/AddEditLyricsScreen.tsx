@@ -34,7 +34,7 @@ import { useSongsStore } from '../store/songsStore';
 import { usePlayerStore } from '../store/playerStore';
 import { GradientPicker, AIGeneratorModal } from '../components';
 import { Toast } from '../components/Toast';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../contexts/ThemeContext';
 import { DEFAULT_GRADIENT_ID } from '../constants/gradients';
 import { parseTimestampedLyrics, calculateDuration, lyricsToRawText } from '../utils/timestampParser';
 import { generateId } from '../utils/formatters';
@@ -64,6 +64,7 @@ const parseDurationInput = (input: string): number => {
 };
 
 const AddEditLyricsScreen = ({ navigation, route }: any) => {
+  const colors = useThemeColors();
   const { songId } = route.params ?? {};
   const isEditing = !!songId;
 
@@ -190,27 +191,9 @@ const AddEditLyricsScreen = ({ navigation, route }: any) => {
   // SMART SEARCH HANDLER
   // ============================================================================
   
-  const handleSearch = React.useCallback(async (query: string) => {
-      // Implementation placeholder if needed, or if this is just standard handler
-      // The error said "The 'handleSearch' function makes the dependencies of useEffect Hook (at line 300) change on every render."
-      // But looking at the file, handleSearch is NOT defined in the viewed lines?
-      // Wait, I missed it.
-      // Ah, line 185 is where I am inserting?
-      // No, looking at previous context, handleSearch was NOT in the file view. 
-      // It must be further down or I missed it.
-      // Let me re-read the file view carefully.
-      // The file view shows `LrcSearchModal` usage around line 661.
-      // It shows `handleSearchResult` at 292.
-      // It does NOT show `handleSearch` definition in lines 1-800.
-      // It must be deeper or I missed it.
-      // Wait, the error says: "178:11 warning The 'handleSearch' function..."
-      // Line 178 is empty in the view?
-      // Line 178: setLyricsText(shiftedLines.join('\n'));
-      // No, line 178 is inside `shiftTimestamps`.
-      // The error log line numbers might be off if the file changed?
-      // Or I am looking at the wrong file.
-      // C:\Users\nithy\Desktop\1 prats projects\LuvLyrics\src\screens\AddEditLyricsScreen.tsx
-      // Let's look for `const handleSearch =` in the file.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleSearch = React.useCallback(async (_query: string) => {
+      // Implementation placeholder
   }, []);
 
   // ============================================================================
@@ -241,7 +224,8 @@ const AddEditLyricsScreen = ({ navigation, route }: any) => {
       const searchTitle = title.trim();
       const searchArtist = artist.trim();
       parseDurationInput(durationText); // Validate but not stored if unused elsewhere below
-      const searchAlbum = album.trim();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _searchAlbum = album.trim();
 
       console.log(`[Magic] Attempt ${magicAttempt}: Searching for "${searchTitle}" by "${searchArtist}"`);
 
@@ -550,16 +534,16 @@ const AddEditLyricsScreen = ({ navigation, route }: any) => {
              </Text>
              <View style={styles.sliderContainer}>
                 <Pressable onPress={() => setScrollSpeed(Math.max(10, scrollSpeed - 5))} style={styles.speedButton}>
-                  <Ionicons name="remove" size={24} color={Colors.textPrimary} />
+                  <Ionicons name="remove" size={24} color={colors.textPrimary} />
                 </Pressable>
-                <View 
+                <View
                   style={[
-                    styles.speedBar, 
+                    styles.speedBar,
                     { width: `${((scrollSpeed || 50) / 200) * 100}%` }
-                  ]} 
+                  ]}
                 />
                 <Pressable onPress={() => setScrollSpeed(Math.min(200, scrollSpeed + 5))} style={styles.speedButton}>
-                  <Ionicons name="add" size={24} color={Colors.textPrimary} />
+                  <Ionicons name="add" size={24} color={colors.textPrimary} />
                 </Pressable>
              </View>
              <Text style={styles.hintText}>Only used if lyrics have no timestamps</Text>
@@ -644,7 +628,7 @@ const AddEditLyricsScreen = ({ navigation, route }: any) => {
                             setShowToast(true);
                         }
                  }}>
-                  <Text style={[styles.aiButton, { color: isShowingTransliteration ? '#3EA6FF' : '#A78BFA' }]}>
+                  <Text style={[styles.aiButton, { color: isShowingTransliteration ? '#2F8CFF' : '#7ED957' }]}>
                       {isShowingTransliteration ? 'Show Original' : 'Transliterate'}
                   </Text>
                 </Pressable>
@@ -663,7 +647,7 @@ const AddEditLyricsScreen = ({ navigation, route }: any) => {
               style={[styles.lyricsInput, isShowingTransliteration && { borderColor: '#A78BFA', borderWidth: 1 }]}
               multiline
               placeholder={isShowingTransliteration ? "Transliterated text will appear here..." : "Type or paste lyrics here..."}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={isShowingTransliteration ? transliteratedText : lyricsText}
               onChangeText={isShowingTransliteration ? setTransliteratedText : setLyricsText}
               textAlignVertical="top"
@@ -702,17 +686,17 @@ const AddEditLyricsScreen = ({ navigation, route }: any) => {
         <View style={styles.toolbar}>
           <View style={styles.toolbarLeft}>
             <Pressable style={styles.toolButton}>
-              <Ionicons name="text" size={24} color={Colors.textSecondary} />
+              <Ionicons name="text" size={24} color={colors.textSecondary} />
             </Pressable>
             <Pressable style={styles.toolButton}>
-              <Ionicons name="create-outline" size={24} color={Colors.textSecondary} />
+              <Ionicons name="create-outline" size={24} color={colors.textSecondary} />
             </Pressable>
             <Pressable style={styles.toolButton}>
-              <Ionicons name="reorder-three-outline" size={24} color={Colors.textSecondary} />
+              <Ionicons name="reorder-three-outline" size={24} color={colors.textSecondary} />
             </Pressable>
           </View>
           <Pressable style={styles.toolButton}>
-            <Ionicons name="chevron-down" size={24} color={Colors.textSecondary} />
+            <Ionicons name="chevron-down" size={24} color={colors.textSecondary} />
           </Pressable>
         </View>
       </SafeAreaView>
@@ -728,6 +712,7 @@ interface FloatingInputProps {
 }
 
 const FloatingInput: React.FC<FloatingInputProps> = ({ label, value, onChangeText }) => {
+  const colors = useThemeColors();
   const [isFocused, setIsFocused] = useState(false);
   const isFloating = isFocused || value.length > 0;
 
@@ -736,6 +721,7 @@ const FloatingInput: React.FC<FloatingInputProps> = ({ label, value, onChangeTex
       <Text
         style={[
           floatingStyles.label,
+          { color: colors.textSecondary },
           isFloating && floatingStyles.labelFloating,
           isFocused && floatingStyles.labelFocused,
         ]}
@@ -743,7 +729,7 @@ const FloatingInput: React.FC<FloatingInputProps> = ({ label, value, onChangeTex
         {label}
       </Text>
       <TextInput
-        style={[floatingStyles.input, isFocused && floatingStyles.inputFocused]}
+        style={[floatingStyles.input, { color: colors.textPrimary }, isFocused && floatingStyles.inputFocused]}
         value={value}
         onChangeText={onChangeText}
         onFocus={() => setIsFocused(true)}
@@ -765,7 +751,6 @@ const floatingStyles = StyleSheet.create({
     left: 0,
     top: 24,
     fontSize: 16,
-    color: Colors.textSecondary,
   },
   labelFloating: {
     top: 0,
@@ -776,18 +761,17 @@ const floatingStyles = StyleSheet.create({
   },
   input: {
     fontSize: 16,
-    color: Colors.textPrimary,
     paddingVertical: 8,
   },
   inputFocused: {
-    borderBottomColor: '#3EA6FF',
+    borderBottomColor: '#2F8CFF',
   },
 });
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F0F0F',
+    backgroundColor: '#020A16',
   },
   safeArea: {
     flex: 1,
@@ -800,7 +784,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   cancelButton: {
-    backgroundColor: '#272727',
+    backgroundColor: '#0B1F3A',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
@@ -808,12 +792,12 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     letterSpacing: 0.3,
   },
   saveButton: {
@@ -857,29 +841,29 @@ const styles = StyleSheet.create({
   lyricsLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: '#888888',
     letterSpacing: 1,
   },
   pasteButton: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#3EA6FF',
+    color: '#2F8CFF',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   aiButton: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#A78BFA', // Purple accent
+    color: '#7ED957', // Lyric green accent
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   lyricsInput: {
-    backgroundColor: '#181818',
+    backgroundColor: '#06152B',
     borderRadius: 12,
     padding: 20,
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     minHeight: 300,
     lineHeight: 24,
   },
@@ -887,9 +871,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#181818',
+    backgroundColor: '#06152B',
     borderTopWidth: 1,
-    borderTopColor: '#2a2a2a',
+    borderTopColor: '#112A4A',
     paddingHorizontal: 24,
     paddingVertical: 12,
   },
@@ -901,7 +885,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   sectionTitle: {
-    color: Colors.textSecondary,
+    color: '#888888',
     marginBottom: 12,
     fontSize: 14,
     fontWeight: '600',
@@ -923,11 +907,11 @@ const styles = StyleSheet.create({
   speedBar: {
     flex: 1,
     height: 4,
-    backgroundColor: Colors.accent,
+    backgroundColor: '#3EA6FF',
     borderRadius: 2,
   },
   hintText: {
-    color: Colors.textMuted,
+    color: '#555555',
     fontSize: 12,
     paddingHorizontal: 16,
   },
@@ -942,14 +926,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 12,
-    backgroundColor: '#181818',
+    backgroundColor: '#06152B',
     borderRadius: 12,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   alignButtonActive: {
-    backgroundColor: '#2a2a2a',
-    borderColor: '#3EA6FF',
+    backgroundColor: '#0B1F3A',
+    borderColor: '#2F8CFF',
   },
   alignButtonText: {
     fontSize: 14,
@@ -978,7 +962,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#2F8CFF',
     borderRadius: 8,
   },
   magicButtonText: {
@@ -1020,7 +1004,7 @@ const styles = StyleSheet.create({
   },
   audioHint: {
     fontSize: 13,
-    color: '#7C3AED',
+    color: '#2F8CFF',
     marginTop: 8,
     fontStyle: 'italic',
   },

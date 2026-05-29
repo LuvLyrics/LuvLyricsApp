@@ -10,11 +10,12 @@ import {
   Alert
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../contexts/ThemeContext';
 import { usePlaylistStore } from '../store/playlistStore';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 export const CreatePlaylistModal = () => {
+    const colors = useThemeColors();
     const navigation = useNavigation();
     const route = useRoute<any>(); // Get params properly
     const params = route.params;
@@ -36,7 +37,7 @@ export const CreatePlaylistModal = () => {
                 await createPlaylist(name.trim());
             }
             navigation.goBack();
-        } catch (error) {
+        } catch {
             Alert.alert('Error', `Failed to ${isEditMode ? 'update' : 'create'} playlist`);
         }
     };
@@ -55,7 +56,7 @@ export const CreatePlaylistModal = () => {
                     <TextInput
                         style={styles.input}
                         placeholder="My Awesome Playlist"
-                        placeholderTextColor={Colors.textSecondary}
+                        placeholderTextColor={colors.textSecondary}
                         value={name}
                         onChangeText={setName}
                         autoFocus
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: '#888888',
         marginBottom: 24,
         textAlign: 'center',
     },
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
         borderRadius: 12,
-        backgroundColor: Colors.primary || '#1DB954',
+        backgroundColor: '#1DB954',
         alignItems: 'center',
     },
     disabledButton: {

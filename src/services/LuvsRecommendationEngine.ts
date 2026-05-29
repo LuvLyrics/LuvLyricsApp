@@ -37,7 +37,7 @@ class LuvsRecommendationEngine {
 
     // Check if we need to re-seed: library has more songs than seeded interactions
     // This handles the case where old vault data was seeded but library wasn't
-    const librarySongCount = songs.filter(s => s.artist && s.artist !== 'Unknown Artist').length;
+    // const librarySongCount = songs.filter(s => s.artist && s.artist !== 'Unknown Artist').length;
     
     // Check if we have analyzed preferences yet
     const topArtists = prefsStore.getTopArtistNames(5);
@@ -129,7 +129,7 @@ class LuvsRecommendationEngine {
         // Fallback to trending if no library/history data
         if (__DEV__) console.log('[LuvsRecoEngine] ⚠️ No personalized artists found. Using Language Trending fallback.');
         const fallbackQueries: GeneratedQuery[] = [];
-        const activeLanguages = languageWeights.filter(w => w.weight > 0);
+        // const activeLanguages = languageWeights.filter(w => w.weight > 0);
         
         const modifiers = ['Trending', 'Hit Songs', 'Melody', 'Love Songs', 'Party Songs'];
         

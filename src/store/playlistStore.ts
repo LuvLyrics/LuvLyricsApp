@@ -4,9 +4,10 @@
  */
 
 import { create } from 'zustand';
-import { Playlist, Song } from '../types/song';
+import { Playlist } from '../types/song';
 import * as playlistQueries from '../database/playlistQueries';
 import * as songQueries from '../database/queries';
+import { usePlayerStore } from './playerStore';
 
 interface PlaylistState {
   // State
@@ -183,7 +184,6 @@ export const usePlaylistStore = create<PlaylistState>((set, get) => ({
       await playlistQueries.removeSongFromPlaylist(playlistId, songId);
       
       // CRITICAL: Queue sync to prevent ghost songs
-      const { usePlayerStore } = await import('./playerStore');
       const playerState = usePlayerStore.getState();
       if (playerState.currentPlaylistId === playlistId) {
         playerState.removeFromQueue(songId);

@@ -31,7 +31,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#000000"
+"backgroundColor": "#020A16"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.lyricflow.app",
