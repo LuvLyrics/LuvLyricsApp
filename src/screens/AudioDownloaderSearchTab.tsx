@@ -118,10 +118,11 @@ const BulkHeader: React.FC<BulkHeaderProps> = memo((props) => (
 interface AudioDownloaderSearchTabProps {
     autoSearchQuery?: string;
     autoDownload?: boolean;
+    onDownloadStarted?: () => void;
 }
 
 // Isolated: no props — reads from stores directly, never re-renders on queue progress
-export const AudioDownloaderSearchTab = memo(({ autoSearchQuery, autoDownload }: AudioDownloaderSearchTabProps) => {
+export const AudioDownloaderSearchTab = memo(({ autoSearchQuery, autoDownload, onDownloadStarted }: AudioDownloaderSearchTabProps) => {
     const colors = useThemeColors();
 
     // --- Store ---
@@ -249,7 +250,8 @@ export const AudioDownloaderSearchTab = memo(({ autoSearchQuery, autoDownload }:
             const songs = (activeTab.bulkItems ?? []).filter(i => i.result !== null).map(i => i.result!);
             addToQueue(songs, playlistId);
         }
-    }, [getSelectedSongs, addToQueue, clearAllSelections, activeTab.bulkItems]);
+        onDownloadStarted?.();
+    }, [getSelectedSongs, addToQueue, clearAllSelections, activeTab.bulkItems, onDownloadStarted]);
 
     const openArtistTab = useCallback((artist: string) => { createTab(artist); }, [createTab]);
 

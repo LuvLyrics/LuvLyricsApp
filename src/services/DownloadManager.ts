@@ -109,14 +109,22 @@ class DownloadManager {
                         onProgress(1.0);
                         cleanup();
 
+                        // event.audioUri can be null when WorkManager emits "succeeded" from
+                        // setProgress() before the state transitions to SUCCEEDED — outputData
+                        // isn't populated yet. Fall back to the known download path.
+                        const audioUri = event.audioUri ?? `${songDir}audio.mp3`;
+                        // If native cover download failed (null), fall back to the remote URL so
+                        // the UI still shows art instead of a blank placeholder.
+                        const coverUri = event.coverUri || staging.selectedCoverUri || undefined;
+
                         const newSong: Song = {
                             id: staging.id,
                             title: staging.title,
                             artist: staging.artist,
-                            album: staging.album, 
+                            album: staging.album,
                             duration: staging.duration,
-                            coverImageUri: event.coverUri || undefined,
-                            audioUri: event.audioUri,
+                            coverImageUri: coverUri,
+                            audioUri: audioUri,
                             playCount: 0,
                             dateCreated: new Date().toISOString(),
                             dateModified: new Date().toISOString(),
