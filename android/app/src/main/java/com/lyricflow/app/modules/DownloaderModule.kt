@@ -1,12 +1,12 @@
 package com.lyricflow.app.modules
 
-import android.content.Context
 import androidx.work.*
 import com.lyricflow.app.workers.DownloadWorker
+import com.lyricflow.app.workers.ProgressBus
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filter
 
 class DownloaderModule : Module() {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -29,7 +29,6 @@ class DownloaderModule : Module() {
                 "safDir" to safDir
             )
 
-            // Keep only 2 concurrent downloads active (configured by WorkManager queue, but tags help identify)
             val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
                 .setInputData(inputData)
                 .addTag(id)
@@ -37,46 +36,24 @@ class DownloaderModule : Module() {
 
             workManager.enqueueUniqueWork(id, ExistingWorkPolicy.REPLACE, workRequest)
 
-            // Start observing the specific worker status flow
+            // ProgressBus delivers real-time updates directly from the worker thread,
+            // bypassing WorkManager's database-backed flow which batches/coalesces updates.
             scope.launch {
-                workManager.getWorkInfoByIdFlow(workRequest.id).collect { workInfo ->
-                    if (workInfo != null) {
-                        val progress = workInfo.progress.getFloat("progress", 0.0f)
-                        val status = workInfo.progress.getString("status") ?: when (workInfo.state) {
-                            WorkInfo.State.ENQUEUED -> "enqueued"
-                            WorkInfo.State.RUNNING -> "running"
-                            WorkInfo.State.SUCCEEDED -> "succeeded"
-                            WorkInfo.State.FAILED -> "failed"
-                            WorkInfo.State.CANCELLED -> "cancelled"
-                            else -> "unknown"
-                        }
-
-                        val audioUri = if (workInfo.state == WorkInfo.State.SUCCEEDED) {
-                            workInfo.outputData.getString("audioUri")
-                        } else null
-
-                        val coverUri = if (workInfo.state == WorkInfo.State.SUCCEEDED) {
-                            workInfo.outputData.getString("coverUri")
-                        } else null
-
-                        val errorMsg = if (workInfo.state == WorkInfo.State.FAILED) {
-                            workInfo.outputData.getString("error")
-                        } else null
-
+                ProgressBus.events
+                    .filter { it.id == id }
+                    .collect { event ->
                         sendEvent("onDownloadProgress", mapOf(
-                            "id" to id,
-                            "progress" to progress,
-                            "status" to status,
-                            "audioUri" to audioUri,
-                            "coverUri" to coverUri,
-                            "error" to errorMsg
+                            "id" to event.id,
+                            "progress" to event.progress,
+                            "status" to event.status,
+                            "audioUri" to event.audioUri,
+                            "coverUri" to event.coverUri,
+                            "error" to event.error
                         ))
-
-                        if (workInfo.state.isFinished) {
-                            this.cancel() // Stop collecting flow once the worker completes
+                        if (event.status == "succeeded" || event.status == "failed" || event.status == "cancelled") {
+                            this.cancel()
                         }
                     }
-                }
             }
 
             workRequest.id.toString()

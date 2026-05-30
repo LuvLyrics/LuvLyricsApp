@@ -119,6 +119,7 @@ export const AudioDownloaderScreen: React.FC<AudioDownloaderProps> = ({ navigati
                     <AudioDownloaderSearchTab
                         autoSearchQuery={voiceQuery}
                         autoDownload={autoDownload}
+                        onDownloadStarted={() => setActiveShellTab('queue')}
                     />
                 </View>
                 <View style={[styles.tabContent, activeShellTab !== 'queue' && styles.hidden]}>

@@ -162,6 +162,9 @@ dependencies {
     // WorkManager Kotlin runtime for Module C
     implementation "androidx.work:work-runtime-ktx:2.9.0"
 
+    // OkHttp for reliable file downloads in DownloadWorker (handles redirects, HTTPS, CDN headers)
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+
     // Palette API for Module F (album art color extraction)
     implementation "androidx.palette:palette-ktx:1.0.0"
 
