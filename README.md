@@ -10,6 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![SQLite](https://img.shields.io/badge/SQLite-local--first-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://expo.dev/packages/expo-sqlite)
 [![GSSoC 2026](https://img.shields.io/badge/GSSoC%202026-Official%20Project-orange?style=flat-square&logo=girlscript&logoColor=white)](https://gssoc.girlscript.org/projects/luvlyrics%2Fluvlyricsapp)
+[![Discord](https://img.shields.io/discord/1346915886471483404?logo=discord&label=Discord)](https://discord.gg/VeR3hAfUn)
 
 ---
 
@@ -78,6 +79,11 @@ _Contribute to a real production app. Earn GSSoC leaderboard points. Build your 
 | 5 | Once your PR is reviewed and merged, your GSSoC points are automatically credited |
 
 > **What is GSSoC?** GirlScript Summer of Code is a free, open-source program by GirlScript Foundation. It is open to everyone — regardless of gender, background, or country — and is a great way to make real contributions to production projects while getting recognized for it.
+
+### 💬 Questions or need help?
+
+- **Discord**: [Join our community](https://discord.gg/VeR3hAfUn) — fastest way to reach maintainers and other contributors
+- **Email**: [contactluvlyricsapp@gmail.com](mailto:contactluvlyricsapp@gmail.com) — for private or sensitive questions
 
 ---
 
