@@ -1,79 +1,61 @@
 package com.lyricflow.app.services
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Intent
-import androidx.annotation.OptIn
+import android.os.Build
+import android.os.IBinder
+import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
-import androidx.media3.session.SessionResult
 import com.lyricflow.app.modules.PlayerBridge
 
-class PlaybackService : MediaSessionService() {
-    private var mediaSession: MediaSession? = null
+private const val TAG = "LyrFlow"
+private const val CHANNEL_ID = "lyricflow_playback"
+private const val NOTIFICATION_ID = 1
+
+class PlaybackService : android.app.Service() {
     private lateinit var exoPlayer: ExoPlayer
 
-    @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "PlaybackService.onCreate() start")
+
+        // Create notification channel (required Android 8+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Music Playback",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            getSystemService(NotificationManager::class.java)
+                .createNotificationChannel(channel)
+        }
+
+        // Call startForeground() immediately so Android doesn't kill us
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("LuvLyrics")
+            .setContentText("Playing music")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSilent(true)
+            .build()
+        startForeground(NOTIFICATION_ID, notification)
+
         exoPlayer = ExoPlayer.Builder(this).build()
         exoPlayer.repeatMode = Player.REPEAT_MODE_OFF
-
         PlayerBridge.setPlayer(exoPlayer, this)
-
-        mediaSession = MediaSession.Builder(this, exoPlayer)
-            .setCallback(CustomMediaSessionCallback())
-            .build()
+        Log.d(TAG, "PlaybackService.onCreate() done — player registered")
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
-        return mediaSession
-    }
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        Log.d(TAG, "PlaybackService.onDestroy()")
         PlayerBridge.clearPlayer()
-        mediaSession?.run {
-            player.release()
-            release()
-            mediaSession = null
-        }
+        exoPlayer.release()
         super.onDestroy()
-    }
-
-    @UnstableApi
-    private inner class CustomMediaSessionCallback : MediaSession.Callback {
-        override fun onConnect(
-            session: MediaSession,
-            controller: MediaSession.ControllerInfo
-        ): MediaSession.ConnectionResult {
-            val connectionResult = super.onConnect(session, controller)
-            val playerCommands = connectionResult.availablePlayerCommands.buildUpon()
-                .add(Player.COMMAND_SEEK_TO_NEXT)
-                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
-                .add(Player.COMMAND_SEEK_TO_PREVIOUS)
-                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-                .build()
-            return MediaSession.ConnectionResult.accept(
-                connectionResult.availableSessionCommands,
-                playerCommands
-            )
-        }
-
-        override fun onPlayerCommandRequest(
-            session: MediaSession,
-            controller: MediaSession.ControllerInfo,
-            playerCommand: Int
-        ): Int {
-            if (playerCommand == Player.COMMAND_SEEK_TO_NEXT || playerCommand == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM) {
-                PlayerBridge.onRemoteCommand?.invoke("next")
-                return SessionResult.RESULT_SUCCESS
-            }
-            if (playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS || playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM) {
-                PlayerBridge.onRemoteCommand?.invoke("previous")
-                return SessionResult.RESULT_SUCCESS
-            }
-            return super.onPlayerCommandRequest(session, controller, playerCommand)
-        }
     }
 }

@@ -37,7 +37,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         album: current?.album || '',
         artworkUri: current?.coverImageUri || ''
       };
-      NativeAudioPlayer.load(uri, metadata);
+      return NativeAudioPlayer.load(uri, metadata);
     },
     setActiveForLockScreen: (active: boolean, metadata?: any, _options?: any) => {
       if (active && metadata) {

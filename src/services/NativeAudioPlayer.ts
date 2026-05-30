@@ -8,8 +8,8 @@ if (Platform.OS === 'android') {
     const { requireNativeModule, EventEmitter } = require('expo-modules-core');
     MainPlayerModule = requireNativeModule('MainPlayer');
     eventEmitter = new EventEmitter(MainPlayerModule);
-  } catch (e) {
-    console.error('[NativeAudioPlayer] Failed to load native module:', e);
+  } catch {
+    // MainPlayer native module not available — expo-audio fallback active
   }
 }
 

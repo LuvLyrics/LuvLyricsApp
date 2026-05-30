@@ -44,18 +44,6 @@
     <!-- Foreground service for ExoPlayer audio playback with MediaStyle notification -->
     <service android:name=".services.PlaybackService"
         android:foregroundServiceType="mediaPlayback"
-        android:exported="true">
-      <intent-filter>
-        <action android:name="androidx.media.browse.MediaBrowserServiceCompat"/>
-      </intent-filter>
-    </service>
-
-    <!-- Receiver for Bluetooth/headphone button clicks -->
-    <receiver android:name="androidx.media.session.MediaButtonReceiver"
-        android:exported="true">
-      <intent-filter>
-        <action android:name="android.intent.action.MEDIA_BUTTON"/>
-      </intent-filter>
-    </receiver>
+        android:exported="false"/>
   </application>
 </manifest>
