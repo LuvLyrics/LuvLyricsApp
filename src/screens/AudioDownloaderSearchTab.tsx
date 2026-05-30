@@ -20,11 +20,8 @@ import {
     PlaylistSelectionModal,
 } from '../components';
 import * as Clipboard from 'expo-clipboard';
-import { usePlaylistStore } from '../store/playlistStore';
 import { BulkItem } from '../store/downloaderTabStore';
-import { useLyricsScanQueueStore } from '../store/lyricsScanQueueStore';
 import stringSimilarity from 'string-similarity';
-import * as playlistQueries from '../database/playlistQueries';
 
 // --- Sub-components ---
 

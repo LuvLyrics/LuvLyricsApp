@@ -3,7 +3,6 @@ import { NativeVoiceInput } from '../services/NativeVoiceInput';
 import { parseVoiceIntent } from '../utils/voiceIntentParser';
 import { usePlayerStore, playerControls } from '../store/playerStore';
 import { useSongsStore } from '../store/songsStore';
-import { useSettingsStore } from '../store/settingsStore';
 import { navigationRef } from '../utils/navigationService';
 
 export interface VoiceCommandsState {
@@ -70,6 +69,8 @@ export function useVoiceCommands() {
       subEnd?.remove();
       subError?.remove();
     };
+    // dispatch is stable (useCallback with empty deps) and doesn't need to be a dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const dispatch = useCallback((transcript: string) => {

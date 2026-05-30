@@ -4,7 +4,6 @@ import { downloadManager } from '../services/DownloadManager';
 import { useSongsStore } from '../store/songsStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { LyricaResult } from '../services/LyricaService';
-import { MultiSourceSearchService } from '../services/MultiSourceSearchService';
 import { UnifiedSong } from '../types/song';
 import { fetchCoverArt, fetchStagingLyrics } from '../services/stagingOrchestrator';
 
@@ -87,7 +86,7 @@ export const useSongStaging = () => {
               });
           }
       } catch (e) {
-          console.warn('Preview failed', e);
+          if (__DEV__) console.warn('Preview failed', e);
       }
   }, [staging, sound, isPlaying]);
 
@@ -162,12 +161,14 @@ export const useSongStaging = () => {
   const initFromBrowser = useCallback(async () => {}, []);
 
   const updateSelection = useCallback(async (updates: Partial<StagingSong>) => {
-      console.log('[StagingHook] updateSelection called with:', updates);
-      console.log('[StagingHook] Current staging:', staging);
+      if (__DEV__) {
+        console.log('[StagingHook] updateSelection called with:', updates);
+        console.log('[StagingHook] Current staging:', staging);
+      }
       
       setStaging(prev => {
         const newStaging = prev ? ({ ...prev, ...updates }) : null;
-        console.log('[StagingHook] New staging after update:', newStaging);
+        if (__DEV__) console.log('[StagingHook] New staging after update:', newStaging);
         return newStaging;
       });
 

@@ -49,7 +49,7 @@ export const parseTimestampedLyrics = (rawText: string): LyricLine[] => {
   
   if (__DEV__) console.log(`[Parser] Raw text length: ${rawText.length}, Lines: ${lines.length}`);
   if (__DEV__ && lines.length > 0) {
-      console.log(`[Parser] First line: "${lines[0]}"`);
+      if (__DEV__) console.log(`[Parser] First line: "${lines[0]}"`);
   }
   
   let currentTimestamp = 0;
@@ -61,7 +61,7 @@ export const parseTimestampedLyrics = (rawText: string): LyricLine[] => {
   const hasTimestamps = TIMESTAMP_REGEX.test(textToParse);
   
   if (!hasTimestamps) {
-    console.log('[Parser] No timestamps detected in text');
+    if (__DEV__) console.log('[Parser] No timestamps detected in text');
     // If no timestamps, treat every line as a separate lyric line
     return lines.map((text, index) => ({
       timestamp: 0,

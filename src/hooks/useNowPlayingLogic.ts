@@ -218,7 +218,7 @@ export function useNowPlayingLogic(songId: string) {
           ? durationSV.value
           : (currentSong?.duration || 180);
 
-        console.log(`[NowPlaying] ⚠️ Detected collapsed lyrics. Auto-generating timestamps for ${duration}s`);
+        if (__DEV__) console.log(`[NowPlaying] ⚠️ Detected collapsed lyrics. Auto-generating timestamps for ${duration}s`);
 
         const newLyrics = rawLyrics.map((line, index) => ({
           ...line,
@@ -363,7 +363,7 @@ export function useNowPlayingLogic(songId: string) {
         swatches.vibrant?.color ?? swatches.dominant?.color ?? '#333',
         swatches.darkMuted?.color ?? '#000',
       ]);
-    });
+    }).catch(() => {});
   }, [currentSong?.coverImageUri, isDynamicTheme]);
 
   const gradientColors = !isDynamicTheme || !currentSong?.coverImageUri

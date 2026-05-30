@@ -3,7 +3,6 @@ import { View, Dimensions, Text, Pressable, StyleSheet, LayoutChangeEvent } from
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withTiming,
   withSpring,
   interpolateColor,
   interpolate,
@@ -148,8 +147,6 @@ const SynchronizedLyrics = forwardRef<SynchronizedLyricsRef, SynchronizedLyricsP
   highlightColor,
   topSpacerHeight = SCREEN_HEIGHT * 0.4,
   bottomSpacerHeight = SCREEN_HEIGHT * 0.4,
-  expandedAt = 0,
-  fadeColor = '#000000',
 }, ref) => {
   // Animated ref — required for the scrollTo worklet
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
