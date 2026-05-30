@@ -50,7 +50,7 @@ export const BackgroundDownloader = () => {
         const queueIds = new Set(queue.map(q => q.id));
         for (const activeId of activeDownloads.current) {
             if (!queueIds.has(activeId)) {
-                console.log(`[BackgroundDownloader] Detected removal of active item: ${activeId}`);
+                if (__DEV__) console.log(`[BackgroundDownloader] Detected removal of active item: ${activeId}`);
                 // Stop the download to save bandwidth
                 downloadManager.pauseDownload(activeId); 
                 activeDownloads.current.delete(activeId);
@@ -60,11 +60,11 @@ export const BackgroundDownloader = () => {
         const processItem = async (item: any) => {
             // Check limits BEFORE adding to active set
             if (activeDownloads.current.has(item.id)) {
-                console.log(`[BackgroundDownloader] ${item.id} already downloading`);
+                if (__DEV__) console.log(`[BackgroundDownloader] ${item.id} already downloading`);
                 return;
             }
             if (activeDownloads.current.size >= MAX_CONCURRENT) {
-                console.log(`[BackgroundDownloader] Max concurrent (${MAX_CONCURRENT}) reached, waiting...`);
+                if (__DEV__) console.log(`[BackgroundDownloader] Max concurrent (${MAX_CONCURRENT}) reached, waiting...`);
                 return;
             }
 
@@ -84,12 +84,14 @@ export const BackgroundDownloader = () => {
 
             // Add to active set IMMEDIATELY (synchronously)
             activeDownloads.current.add(item.id);
-            console.log(`[BackgroundDownloader] Starting download ${activeDownloads.current.size}/${MAX_CONCURRENT}: ${item.song.title}`);
-            console.log(`[BackgroundDownloader] URL: ${targetUrl.substring(0, 80)}...`);
+            if (__DEV__) {
+              console.log(`[BackgroundDownloader] Starting download ${activeDownloads.current.size}/${MAX_CONCURRENT}: ${item.song.title}`);
+              console.log(`[BackgroundDownloader] URL: ${targetUrl.substring(0, 80)}...`);
+            }
 
             try {
                 // Log song object to debug cover art
-                console.log(`[BackgroundDownloader] Song cover art URL:`, item.song.highResArt || item.song.thumbnail || 'NONE');
+                if (__DEV__) console.log(`[BackgroundDownloader] Song cover art URL:`, item.song.highResArt || item.song.thumbnail || 'NONE');
                 
                 // 1. Transform UnifiedSong to StagingSong format
                 const stagingPayload: any = {

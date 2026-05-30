@@ -15,7 +15,6 @@ import {
   TextInput,
   Alert,
   Animated,
-  Easing,
   PanResponder,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
@@ -30,19 +29,16 @@ import { useThemeColors, useIsDark } from '../contexts/ThemeContext';
 import { getGradientColors } from '../constants/gradients';
 import { useDailyStatsStore } from '../store/dailyStatsStore';
 import { AuroraHeader } from '../components/AuroraHeader';
-import { Colors, DarkColors } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import { exportAllSongs, shareExportedFile, importSongsFromJson } from '../utils/exportImport';
 import { clearAllData } from '../database/queries';
 import { useLuvsPreferencesStore } from '../store/luvsPreferencesStore';
 import { useDesktopBridgeSettingsStore } from '../store/desktopBridgeSettingsStore';
-import { desktopBridgeService } from '../services/DesktopBridgeService';
 import { trustedPairingService, TrustedDesktopRecord } from '../services/TrustedPairingService';
 import { useSongsStore } from '../store/songsStore';
 import { usePlaylistStore } from '../store/playlistStore';
 import { scanAudioFiles, convertAudioFileToSong } from '../services/mediaScanner';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import { Platform } from 'react-native';
 
 // ─── Mini player background options ──────────────────────────────────────────
 
@@ -118,7 +114,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ visible, title, onClose, chil
         Animated.timing(sheetTranslateY, { toValue: 800, duration: 220, useNativeDriver: true }),
       ]).start(() => { setModalVisible(false); panY.setValue(0); });
     }
-  }, [visible]);
+  }, [visible, overlayOpacity, panY, sheetTranslateY]);
 
   return (
     <Modal visible={modalVisible} transparent animationType="none" onRequestClose={closeOnce} statusBarTranslucent>
@@ -358,12 +354,6 @@ const PINNABLE_ITEMS: Record<PinId, {
   scan:        { icon: 'musical-notes-outline',      iconColor: '#60A5FA', label: 'Scan Audio',   section: 'tools' },
 };
 
-const PIN_SECTIONS: { key: 'personalization' | 'system' | 'tools'; label: string }[] = [
-  { key: 'personalization', label: 'PERSONALIZATION' },
-  { key: 'system',          label: 'SYSTEM' },
-  { key: 'tools',           label: 'TOOLS' },
-];
-
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 type Props = TabScreenProps<'Settings'>;
@@ -371,13 +361,11 @@ type Props = TabScreenProps<'Settings'>;
 const SettingsScreen: React.FC<Props> = () => {
   const insets = useSafeAreaInsets();
   const settings = useSettingsStore();
-  const { fetchSongs, addSong, songs, deleteSong, getSong } = useSongsStore();
+  const { fetchSongs, addSong, songs, getSong } = useSongsStore();
   const applyThemeToOtherPages = useSettingsStore(state => state.applyThemeToOtherPages);
   const libraryBackgroundMode = useSettingsStore(state => state.libraryBackgroundMode);
   const isDark = useIsDark();
   const colors = useThemeColors();
-  const dividerColor = useSettingsDividerColor();
-
   const isSolidBg = libraryBackgroundMode === 'purest-black'
     || libraryBackgroundMode === 'grey'
     || libraryBackgroundMode === 'theme-subtle'
@@ -438,7 +426,7 @@ const SettingsScreen: React.FC<Props> = () => {
     updateTheme();
   }, [applyThemeToOtherPages, libraryBackgroundMode, currentSongId, playerCurrentCover, playerCurrentGradient, songs, songs.length, getSong]);
 
-  const [isImporting, setIsImporting] = React.useState(false);
+  const [, setIsImporting] = React.useState(false);
   const [profileName, setProfileName] = React.useState('LyricFlow User');
   const [profileImage, setProfileImage] = React.useState<string | null>(null);
   const [editNameVisible, setEditNameVisible] = React.useState(false);
@@ -457,12 +445,11 @@ const SettingsScreen: React.FC<Props> = () => {
   const [pairingModalVisible, setPairingModalVisible] = React.useState(false);
   const [pairingPayloadText, setPairingPayloadText] = React.useState('');
   const [pairingBusy, setPairingBusy] = React.useState(false);
-  const [trustedDesktops, setTrustedDesktops] = React.useState<TrustedDesktopRecord[]>([]);
+  const [, setTrustedDesktops] = React.useState<TrustedDesktopRecord[]>([]);
   const [activeSheet, setActiveSheet] = React.useState<string | null>(null);
   const closeSheet = React.useCallback(() => setActiveSheet(null), []);
   const quickPins = useSettingsStore(state => state.quickPins);
-  const setQuickPins = useSettingsStore(state => state.setQuickPins);
-  const [pinPickerSlot, setPinPickerSlot] = React.useState<number | null>(null);
+  const [, setPinPickerSlot] = React.useState<number | null>(null);
 
   const [alertConfig, setAlertConfig] = React.useState<{
     visible: boolean; title: string; message: string;
@@ -503,7 +490,7 @@ const SettingsScreen: React.FC<Props> = () => {
     } catch (e) {
       Alert.alert('Export failed', e instanceof Error ? e.message : 'Unknown error');
     }
-  }, [songs]);
+  }, []);
 
   const handleImport = React.useCallback(async () => {
     try {

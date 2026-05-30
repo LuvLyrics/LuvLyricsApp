@@ -16,7 +16,7 @@ import { normalizeLyrics } from '../utils/timestampParser';
 const LOG_PREFIX = '[QUERIES]';
 
 const log = (msg: string, data?: any) => {
-  console.log(`${LOG_PREFIX} ${msg}`, data ?? '');
+  if (__DEV__) console.log(`${LOG_PREFIX} ${msg}`, data ?? '');
 };
 
 

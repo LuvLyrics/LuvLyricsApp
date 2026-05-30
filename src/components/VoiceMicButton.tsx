@@ -25,14 +25,13 @@ interface Props {
 }
 
 const INLINE_SIZE = 40;
-const INLINE_PRIMARY = '#2F8CFF';
 
 // Long-press threshold: 600ms feels natural for hold-to-talk
 const LONG_PRESS_MS = 600;
 
 export const VoiceMicButton: React.FC<Props> = ({ style, variant = 'floating' }) => {
   const isInline = variant === 'inline';
-  const { isListening, audioLevel, error, startListening, stopListening, cancelListening } = useVoiceCommands();
+  const { isListening, audioLevel, error, startListening, stopListening } = useVoiceCommands();
   const isDark = useIsDark();
   const colors = useThemeColors();
   const voiceMode = useSettingsStore(s => s.voiceMode ?? 'tap');
@@ -84,7 +83,7 @@ export const VoiceMicButton: React.FC<Props> = ({ style, variant = 'floating' })
         b.value = withTiming(0.3, { duration: 200 });
       });
     }
-  }, [isListening]);
+  }, [isListening, pulseScale, pulseOpacity, pressScale, bar1, bar2, bar3, bar4]);
 
   // Flash red briefly on error
   useEffect(() => {
@@ -101,7 +100,7 @@ export const VoiceMicButton: React.FC<Props> = ({ style, variant = 'floating' })
     bar2.value = withTiming(0.3 + lvl * 0.9, { duration: 80 });
     bar3.value = withTiming(0.3 + lvl * 0.7, { duration: 80 });
     bar4.value = withTiming(0.3 + lvl * 0.4, { duration: 80 });
-  }, [audioLevel, isListening]);
+  }, [audioLevel, isListening, bar1, bar2, bar3, bar4]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseScale.value }],

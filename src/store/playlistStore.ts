@@ -66,7 +66,7 @@ export const usePlaylistStore = create<PlaylistState>((set, get) => ({
         isLoading: false 
       });
       
-      console.log(`[PLAYLIST_STORE] Loaded ${playlists.length} playlists, ${likedIds.size} liked songs`);
+      if (__DEV__) console.log(`[PLAYLIST_STORE] Loaded ${playlists.length} playlists, ${likedIds.size} liked songs`);
     } catch (error) {
       console.error('[PLAYLIST_STORE] Fetch error:', error);
       set({ 
@@ -187,7 +187,7 @@ export const usePlaylistStore = create<PlaylistState>((set, get) => ({
       const playerState = usePlayerStore.getState();
       if (playerState.currentPlaylistId === playlistId) {
         playerState.removeFromQueue(songId);
-        console.log(`[PLAYLIST_STORE] Removed ${songId} from active playlist queue`);
+        if (__DEV__) console.log(`[PLAYLIST_STORE] Removed ${songId} from active playlist queue`);
       }
       
       // OPTIMIZATION: Update local count instead of re-fetching
@@ -226,7 +226,7 @@ export const usePlaylistStore = create<PlaylistState>((set, get) => ({
     const isLiked = likedSongIds.has(songId);
 
     try {
-      console.log(`[PLAYLIST_STORE] Toggling like for ${songId}. Currently liked: ${isLiked}`);
+      if (__DEV__) console.log(`[PLAYLIST_STORE] Toggling like for ${songId}. Currently liked: ${isLiked}`);
       
       // 1. Update DB (both playlist_songs AND legacy is_liked column for safety)
       const song = await songQueries.getSongById(songId);

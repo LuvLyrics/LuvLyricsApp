@@ -1,8 +1,7 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+
 import { TabParamList } from '../types/navigation';
 import { ModernPillTabBar } from '../components/ModernPillTabBar';
 import { CustomTabBar } from '../components/CustomTabBar';
@@ -17,18 +16,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
-const DarkTabBarBackground = () => (
-  <LinearGradient
-    colors={['rgba(10,10,12,0.98)', 'rgba(5,5,6,1)']}
-    style={StyleSheet.absoluteFill}
-    start={{ x: 0, y: 0 }}
-    end={{ x: 0, y: 1 }}
-  />
-);
 
-const LightTabBarBackground = () => (
-  <View style={[StyleSheet.absoluteFill, { backgroundColor: '#FFFFFF', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E5E5EA' }]} />
-);
 
 const HomeIcon = ({ color, focused }: { color: string; focused: boolean }) => (
   <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
@@ -64,7 +52,6 @@ export const TabNavigator: React.FC = () => {
 
   const activeTint = isDark ? '#fff' : colors.primary;
   const inactiveTint = isDark ? 'rgba(255,255,255,0.5)' : colors.textMuted;
-  const TabBarBackground = isDark ? DarkTabBarBackground : LightTabBarBackground;
 
   return (
     <Tab.Navigator
@@ -84,20 +71,5 @@ export const TabNavigator: React.FC = () => {
     </Tab.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: 'transparent',
-    borderTopWidth: 0,
-    height: 70,
-    paddingTop: 8,
-    paddingBottom: 10,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    elevation: 0,
-  },
-});
 
 export default TabNavigator;

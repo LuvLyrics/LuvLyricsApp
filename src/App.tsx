@@ -53,7 +53,7 @@ const MusicLoader: React.FC = () => {
     );
     loops.forEach(l => l.start());
     return () => loops.forEach(l => l.stop());
-  }, []);
+  }, [anims]);
 
   return (
     <View style={loaderStyles.bars}>
@@ -77,6 +77,7 @@ const loaderStyles = StyleSheet.create({
 const App: React.FC = () => {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const fetchSongs = useSongsStore((state) => state.fetchSongs);
 
   useEffect(() => {
@@ -170,7 +171,7 @@ const App: React.FC = () => {
     };
 
     initialize();
-  }, [fetchSongs]);
+  }, [fetchSongs, retryKey]);
 
   if (!isReady) {
     return (
@@ -196,8 +197,7 @@ const App: React.FC = () => {
           onPress={() => {
             setError(null);
             setIsReady(false);
-            // Force re-mount to trigger useEffect
-            setTimeout(() => {}, 0);
+            setRetryKey(k => k + 1);
           }}
         >
           <Text style={styles.retryButtonText}>Retry</Text>
