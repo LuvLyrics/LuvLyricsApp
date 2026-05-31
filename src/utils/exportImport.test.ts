@@ -25,7 +25,7 @@ jest.mock('../database/queries', () => ({
 
 import * as FileSystem from 'expo-file-system/legacy';
 import { getAllSongsWithLyrics } from '../database/queries';
-import { exportAllSongs, sanitizeFilename } from './exportImport';
+import { exportAllSongs, sanitizeFilename, serializeLrc, exportSongAsLrc } from './exportImport';
 
 const mockedWriteAsStringAsync = jest.mocked(FileSystem.writeAsStringAsync);
 const mockedGetAllSongsWithLyrics = jest.mocked(getAllSongsWithLyrics);
@@ -93,6 +93,101 @@ describe('sanitizeFilename', () => {
   it('produces identical output on repeated calls', () => {
     const input = 'Tum Hi Ho: Reprise / Final*';
     expect(sanitizeFilename(input)).toBe(sanitizeFilename(input));
+  });
+});
+
+describe('serializeLrc', () => {
+  const syncedLyrics = [
+    { id: 1, timestamp: 62.5, text: 'Hello world', lineOrder: 0 },
+    { id: 2, timestamp: 65.0, text: 'Second line', lineOrder: 1 },
+    { id: 3, timestamp: 68.05, text: 'Third line', lineOrder: 2 },
+  ];
+
+  const plainLyrics = [
+    { id: 1, timestamp: 0, text: 'Hello world', lineOrder: 0 },
+    { id: 2, timestamp: 0, text: 'Second line', lineOrder: 1 },
+  ];
+
+  it('serializes synced lyrics with [mm:ss.xx] format', () => {
+    const song = { title: 'Test', artist: 'Tester', lyrics: syncedLyrics } as any;
+    const result = serializeLrc(song);
+    expect(result).toBe('[01:02.50]Hello world\n[01:05.00]Second line\n[01:08.05]Third line');
+  });
+
+  it('serializes plain lyrics as plain text lines', () => {
+    const song = { title: 'Test', artist: 'Tester', lyrics: plainLyrics } as any;
+    const result = serializeLrc(song);
+    expect(result).toBe('Hello world\nSecond line');
+  });
+
+  it('returns empty string for empty lyrics', () => {
+    const song = { title: 'Test', artist: 'Tester', lyrics: [] } as any;
+    expect(serializeLrc(song)).toBe('');
+  });
+
+  it('handles special characters in lyrics text', () => {
+    const lyrics = [{ id: 1, timestamp: 1.0, text: 'Line with < & " quotes', lineOrder: 0 }];
+    const song = { title: 'Test', artist: 'Tester', lyrics } as any;
+    expect(serializeLrc(song)).toContain('Line with < & " quotes');
+  });
+});
+
+describe('exportSongAsLrc', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.mocked(FileSystem.writeAsStringAsync).mockReset();
+  });
+
+  it('writes LRC content to a sanitized filename', async () => {
+    jest.mocked(FileSystem.writeAsStringAsync).mockResolvedValue();
+
+    const song = {
+      id: 's1',
+      title: 'Test Song',
+      artist: 'Test Artist',
+      lyrics: [
+        { id: 1, timestamp: 10.0, text: 'Line one', lineOrder: 0 },
+      ],
+    } as any;
+
+    const fileUri = await exportSongAsLrc(song);
+
+    expect(fileUri).toBe('file:///documents/Test Artist - Test Song.lrc');
+    expect(jest.mocked(FileSystem.writeAsStringAsync)).toHaveBeenCalledWith(
+      'file:///documents/Test Artist - Test Song.lrc',
+      '[00:10.00]Line one',
+      { encoding: FileSystem.EncodingType.UTF8 }
+    );
+  });
+
+  it('uses fallback for missing artist/title', async () => {
+    jest.mocked(FileSystem.writeAsStringAsync).mockResolvedValue();
+
+    const song = {
+      id: 's2',
+      title: '',
+      artist: '',
+      lyrics: [],
+    } as any;
+
+    const fileUri = await exportSongAsLrc(song);
+
+    expect(fileUri).toMatch(/Unknown Artist - Unknown Title\.lrc$/);
+  });
+
+  it('sanitizes special characters in filename', async () => {
+    jest.mocked(FileSystem.writeAsStringAsync).mockResolvedValue();
+
+    const song = {
+      id: 's3',
+      title: 'Song: Reprise/Final',
+      artist: 'AC/DC',
+      lyrics: [],
+    } as any;
+
+    const fileUri = await exportSongAsLrc(song);
+
+    expect(fileUri).toContain('AC_DC - Song_ Reprise_Final.lrc');
   });
 });
 

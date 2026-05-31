@@ -141,6 +141,51 @@ export const importSongsFromJson = async (): Promise<number> => {
 };
 
 /**
+ * Serialize song lyrics to LRC format
+ * - Synced lines -> [mm:ss.xx]text
+ * - Plain lines -> plain text
+ */
+export function serializeLrc(song: Song): string {
+  if (!song.lyrics || song.lyrics.length === 0) return '';
+
+  const hasTimestamps = song.lyrics.some(line => line.timestamp > 0);
+
+  return song.lyrics
+    .map(line => {
+      if (!hasTimestamps || line.timestamp <= 0) {
+        return line.text;
+      }
+      const minutes = Math.floor(line.timestamp / 60);
+      const secs = Math.floor(line.timestamp % 60);
+      const centiseconds = Math.round((line.timestamp % 1) * 100);
+      const mm = String(minutes).padStart(2, '0');
+      const ss = String(secs).padStart(2, '0');
+      const xx = String(centiseconds).padStart(2, '0');
+      return `[${mm}:${ss}.${xx}]${line.text}`;
+    })
+    .join('\n');
+}
+
+/**
+ * Export a single song as an .lrc file
+ * @returns File URI of exported LRC file
+ */
+export const exportSongAsLrc = async (song: Song): Promise<string> => {
+  const lrcContent = serializeLrc(song);
+
+  const artist = song.artist || 'Unknown Artist';
+  const title = song.title || 'Unknown Title';
+  const fileName = `${sanitizeFilename(artist)} - ${sanitizeFilename(title)}.lrc`;
+  const fileUri = FileSystem.documentDirectory + fileName;
+
+  await FileSystem.writeAsStringAsync(fileUri, lrcContent, {
+    encoding: FileSystem.EncodingType.UTF8,
+  });
+
+  return fileUri;
+};
+
+/**
  * Get storage usage info
  * @returns Object with total size in bytes and formatted string
  */
