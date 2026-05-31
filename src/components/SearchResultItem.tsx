@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsSongLiked } from '../hooks/useIsSongLiked';
@@ -22,10 +22,31 @@ interface SearchResultItemProps {
 
 const SearchResultItem: React.FC<SearchResultItemProps> = React.memo(({ item, onPress, toggleLike, isDark, colors }) => {
   const isLiked = useIsSongLiked(item.id);
+
+  const handlePress = useCallback(() => {
+    onPress(item);
+  }, [onPress, item]);
+
+  const handleToggleLike = useCallback((e: any) => {
+    e.stopPropagation();
+    toggleLike(item.id);
+  }, [item.id, toggleLike]);
+
+  const handleHeartStyle = useCallback(({ pressed }: { pressed: boolean }) => [
+    styles.heartGlow,
+    pressed && { transform: [{ scale: 1.2 }] },
+    {
+      shadowColor: getGradientById(item.gradientId)?.colors[1] || '#fff',
+      shadowOpacity: isLiked ? 0.8 : 0.3,
+      shadowRadius: isLiked ? 8 : 2,
+      elevation: isLiked ? 5 : 1,
+    }
+  ], [item.gradientId, isLiked]);
+
   return (
     <Pressable
       style={[styles.resultItem, { backgroundColor: isDark ? 'transparent' : colors.card }]}
-      onPress={() => onPress(item)}
+      onPress={handlePress}
     >
       <View style={[styles.resultThumbnail, { backgroundColor: isDark ? '#0B1F3A' : colors.cardHover }]}>
         {item.coverImageUri ? (
@@ -46,20 +67,8 @@ const SearchResultItem: React.FC<SearchResultItemProps> = React.memo(({ item, on
       </View>
 
       <Pressable
-        onPress={(e) => {
-          e.stopPropagation();
-          toggleLike(item.id);
-        }}
-        style={({ pressed }) => [
-          styles.heartGlow,
-          pressed && { transform: [{ scale: 1.2 }] },
-          {
-            shadowColor: getGradientById(item.gradientId)?.colors[1] || '#fff',
-            shadowOpacity: isLiked ? 0.8 : 0.3,
-            shadowRadius: isLiked ? 8 : 2,
-            elevation: isLiked ? 5 : 1,
-          }
-        ]}
+        onPress={handleToggleLike}
+        style={handleHeartStyle}
         hitSlop={10}
       >
         <Ionicons
