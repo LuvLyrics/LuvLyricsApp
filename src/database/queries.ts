@@ -2,12 +2,11 @@
  * LyricFlow - Database CRUD Operations
  */
 
-import { 
-  getDatabase, 
+import {
+  getDatabase,
   withDbRead,
   withDbWrite,
   withDbSafe,
-  esc
 } from './db';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Song } from '../types/song';
@@ -171,60 +170,94 @@ export const getSongById = async (id: string): Promise<Song | null> => {
 
 export const insertSong = async (song: Song): Promise<void> => {
   log(`insertSong() called for: ${song.title}`);
-  
+
   await withDbWrite(async (db) => {
     log(`Inserting song: ${song.id}`);
-    
-    const sql = `
-      INSERT OR REPLACE INTO songs (id, title, artist, album, gradient_id, duration, date_created, date_modified, play_count, scroll_speed, lyrics_align, text_case, audio_uri, is_liked, cover_image_uri)
-      VALUES ('${song.id}', '${esc(song.title)}', ${song.artist ? `'${esc(song.artist)}'` : 'NULL'}, ${song.album ? `'${esc(song.album)}'` : 'NULL'}, '${song.gradientId}', ${song.duration}, '${song.dateCreated}', '${song.dateModified}', ${song.playCount}, ${song.scrollSpeed ?? 50}, '${song.lyricsAlign ?? 'left'}', '${song.textCase ?? 'titlecase'}', ${song.audioUri ? `'${esc(song.audioUri)}'` : 'NULL'}, ${song.isLiked ? 1 : 0}, ${song.coverImageUri ? `'${esc(song.coverImageUri)}'` : 'NULL'});
-    `;
-    
-    await db.execAsync(sql);
-    
+
+    await db.runAsync(
+      `INSERT OR REPLACE INTO songs
+         (id, title, artist, album, gradient_id, duration, date_created, date_modified,
+          play_count, scroll_speed, lyrics_align, text_case, audio_uri, is_liked, cover_image_uri)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        song.id,
+        song.title,
+        song.artist ?? null,
+        song.album ?? null,
+        song.gradientId,
+        song.duration,
+        song.dateCreated,
+        song.dateModified,
+        song.playCount,
+        song.scrollSpeed ?? 50,
+        song.lyricsAlign ?? 'left',
+        song.textCase ?? 'titlecase',
+        song.audioUri ?? null,
+        song.isLiked ? 1 : 0,
+        song.coverImageUri ?? null,
+      ]
+    );
+
     const normalizedLyrics = normalizeLyrics(song.lyrics);
     log(`Inserting ${normalizedLyrics.length} lyrics...`);
-    
+
     for (const lyric of normalizedLyrics) {
-      await db.execAsync(`INSERT INTO lyrics (song_id, timestamp, text, line_order) VALUES ('${song.id}', ${lyric.timestamp}, '${esc(lyric.text)}', ${lyric.lineOrder});`);
+      await db.runAsync(
+        `INSERT INTO lyrics (song_id, timestamp, text, line_order) VALUES (?, ?, ?, ?)`,
+        [song.id, lyric.timestamp, lyric.text, lyric.lineOrder]
+      );
     }
-    
+
     log(`insertSong() completed`);
   });
 };
 
 export const updateSong = async (song: Song): Promise<void> => {
   log(`updateSong() called for: ${song.title}`);
-  
+
   await withDbWrite(async (db) => {
     log(`Updating song: ${song.id}`);
-    
-    await db.execAsync(`
-      UPDATE songs SET title = '${esc(song.title)}', artist = ${song.artist ? `'${esc(song.artist)}'` : 'NULL'}, album = ${song.album ? `'${esc(song.album)}'` : 'NULL'}, gradient_id = '${song.gradientId}', duration = ${song.duration}, date_modified = '${song.dateModified}', scroll_speed = ${song.scrollSpeed ?? 50}, lyrics_align = '${song.lyricsAlign ?? 'left'}', text_case = '${song.textCase ?? 'titlecase'}', cover_image_uri = ${song.coverImageUri ? `'${esc(song.coverImageUri)}'` : 'NULL'}, audio_uri = ${song.audioUri ? `'${esc(song.audioUri)}'` : 'NULL'}, is_liked = ${song.isLiked ? 1 : 0} WHERE id = '${song.id}';
-    `);
-    
+
+    await db.runAsync(
+      `UPDATE songs SET
+         title = ?, artist = ?, album = ?, gradient_id = ?, duration = ?,
+         date_modified = ?, scroll_speed = ?, lyrics_align = ?, text_case = ?,
+         cover_image_uri = ?, audio_uri = ?, is_liked = ?
+       WHERE id = ?`,
+      [
+        song.title,
+        song.artist ?? null,
+        song.album ?? null,
+        song.gradientId,
+        song.duration,
+        song.dateModified,
+        song.scrollSpeed ?? 50,
+        song.lyricsAlign ?? 'left',
+        song.textCase ?? 'titlecase',
+        song.coverImageUri ?? null,
+        song.audioUri ?? null,
+        song.isLiked ? 1 : 0,
+        song.id,
+      ]
+    );
+
     // Only update lyrics if provided
     if (song.lyrics && song.lyrics.length > 0) {
-      await db.execAsync(`DELETE FROM lyrics WHERE song_id = '${song.id}';`);
-      
+      await db.runAsync(`DELETE FROM lyrics WHERE song_id = ?`, [song.id]);
+
       log(`Inserting ${song.lyrics.length} lyrics for song ${song.id}`);
       const normalizedLyrics = normalizeLyrics(song.lyrics);
       log(`Normalized to ${normalizedLyrics.length} lines`);
-      
-      // OPTIMIZATION: Batch Insert in Transaction to prevent locking
-      // Construct a single large INSERT statement (SQLite limit usually 1MB+, safe for lyrics)
-      if (normalizedLyrics.length > 0) {
-          const values = normalizedLyrics.map(lyric => 
-              `('${song.id}', ${lyric.timestamp}, '${esc(lyric.text)}', ${lyric.lineOrder})`
-          ).join(',');
-          
-          await db.execAsync(`
-             INSERT INTO lyrics (song_id, timestamp, text, line_order) 
-             VALUES ${values};
-          `);
+
+      // OPTIMIZATION: Batch insert using individual parameterized statements
+      for (const lyric of normalizedLyrics) {
+        await db.runAsync(
+          `INSERT INTO lyrics (song_id, timestamp, text, line_order) VALUES (?, ?, ?, ?)`,
+          [song.id, lyric.timestamp, lyric.text, lyric.lineOrder]
+        );
       }
     }
-    
+
     log(`updateSong() completed`);
   });
 };
@@ -255,8 +288,8 @@ export const deleteSong = async (id: string): Promise<void> => {
 
     await withDbSafe(async (db) => {
       // 2. Delete from database
-      await db.execAsync(`DELETE FROM lyrics WHERE song_id = '${id}';`);
-      await db.execAsync(`DELETE FROM songs WHERE id = '${id}';`);
+      await db.runAsync(`DELETE FROM lyrics WHERE song_id = ?`, [id]);
+      await db.runAsync(`DELETE FROM songs WHERE id = ?`, [id]);
     });
   } catch (error) {
     console.error('[QUERIES] deleteSong failed during file or DB cleanup:', error);
@@ -266,13 +299,16 @@ export const deleteSong = async (id: string): Promise<void> => {
 
 export const hideSong = async (id: string, hide: boolean): Promise<void> => {
   await withDbSafe(async (db) => {
-    await db.execAsync(`UPDATE songs SET is_hidden = ${hide ? 1 : 0} WHERE id = '${id}';`);
+    await db.runAsync(`UPDATE songs SET is_hidden = ? WHERE id = ?`, [hide ? 1 : 0, id]);
   });
 };
 
 export const updatePlayStats = async (id: string): Promise<void> => {
   await withDbSafe(async (db) => {
-    await db.execAsync(`UPDATE songs SET play_count = play_count + 1, last_played = '${new Date().toISOString()}' WHERE id = '${id}';`);
+    await db.runAsync(
+      `UPDATE songs SET play_count = play_count + 1, last_played = ? WHERE id = ?`,
+      [new Date().toISOString(), id]
+    );
   });
 };
 
