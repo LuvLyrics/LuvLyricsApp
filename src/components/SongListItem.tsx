@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated as RNAnimated } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,10 +28,34 @@ export const SongListItem = React.memo(({ song, onPress, onLongPress, addToScanQ
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : colors.card;
   const cardPressedBg = isDark ? 'rgba(255,255,255,0.1)' : colors.cardHover;
 
-  const renderRightActions = (_progress: RNAnimated.AnimatedInterpolation<number>, dragX: RNAnimated.AnimatedInterpolation<number>) => {
+  const handleAddToScanQueue = useCallback(() => {
+    addToScanQueue(song);
+  }, [addToScanQueue, song]);
+
+  const handlePress = useCallback(() => {
+    onPress(song);
+  }, [onPress, song]);
+
+  const handleLongPress = useCallback(() => {
+    onLongPress(song);
+  }, [onLongPress, song]);
+
+  const handlePressStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [
+      styles.listItem,
+      { backgroundColor: pressed ? cardPressedBg : cardBg },
+      pressed && styles.pressedScale,
+    ],
+    [cardBg, cardPressedBg]
+  );
+
+  const renderRightActions = useCallback((
+    _progress: RNAnimated.AnimatedInterpolation<number>,
+    dragX: RNAnimated.AnimatedInterpolation<number>
+  ) => {
     const opacity = dragX.interpolate({ inputRange: [-60, 0], outputRange: [1, 0], extrapolate: 'clamp' });
     return (
-      <Pressable style={styles.swipeAction} onPress={() => addToScanQueue(song)}>
+      <Pressable style={styles.swipeAction} onPress={handleAddToScanQueue}>
         <RNAnimated.View style={[StyleSheet.absoluteFill, styles.swipeInnerContainer, { opacity }]}>
           <View style={styles.swipeIconContainer}>
             <Ionicons name="sparkles" size={24} color={colors.primary} />
@@ -39,7 +63,7 @@ export const SongListItem = React.memo(({ song, onPress, onLongPress, addToScanQ
         </RNAnimated.View>
       </Pressable>
     );
-  };
+  }, [colors.primary, handleAddToScanQueue]);
 
   return (
     <Swipeable
@@ -50,13 +74,9 @@ export const SongListItem = React.memo(({ song, onPress, onLongPress, addToScanQ
       rightThreshold={40}
     >
       <Pressable
-        onPress={() => onPress(song)}
-        onLongPress={() => onLongPress(song)}
-        style={({ pressed }) => [
-          styles.listItem,
-          { backgroundColor: pressed ? cardPressedBg : cardBg },
-          pressed && styles.pressedScale,
-        ]}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        style={handlePressStyle}
         unstable_pressDelay={50}
       >
         <View style={styles.artworkContainer}>

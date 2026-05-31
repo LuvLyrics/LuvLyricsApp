@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, Image,
@@ -22,6 +22,22 @@ const QueueRow = memo(({ item }: { item: QueueItem }) => {
   const pauseItem   = useDownloadQueueStore(s => s.pauseItem);
   const resumeItem  = useDownloadQueueStore(s => s.resumeItem);
   const retryItem   = useDownloadQueueStore(s => s.retryItem);
+
+  const handlePauseItem = useCallback(() => {
+    pauseItem(item.id);
+  }, [item.id, pauseItem]);
+
+  const handleResumeItem = useCallback(() => {
+    resumeItem(item.id);
+  }, [item.id, resumeItem]);
+
+  const handleRetryItem = useCallback(() => {
+    retryItem(item.id);
+  }, [item.id, retryItem]);
+
+  const handleRemoveItem = useCallback(() => {
+    removeItem(item.id);
+  }, [item.id, removeItem]);
 
   if (!item?.song) return null;
 
@@ -67,21 +83,21 @@ const QueueRow = memo(({ item }: { item: QueueItem }) => {
 
       <View style={styles.actions}>
         {item.status === 'downloading' && (
-          <TouchableOpacity onPress={() => pauseItem(item.id)} style={styles.actionBtn}>
+          <TouchableOpacity onPress={handlePauseItem} style={styles.actionBtn}>
             <Ionicons name="pause" size={20} color="#fff" />
           </TouchableOpacity>
         )}
         {item.status === 'paused' && (
-          <TouchableOpacity onPress={() => resumeItem(item.id)} style={styles.actionBtn}>
+          <TouchableOpacity onPress={handleResumeItem} style={styles.actionBtn}>
             <Ionicons name="play" size={20} color="#4CAF50" />
           </TouchableOpacity>
         )}
         {item.status === 'failed' && (
-          <TouchableOpacity onPress={() => retryItem(item.id)} style={styles.actionBtn}>
+          <TouchableOpacity onPress={handleRetryItem} style={styles.actionBtn}>
             <Ionicons name="refresh" size={20} color="#2196F3" />
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={() => removeItem(item.id)} style={styles.actionBtn}>
+        <TouchableOpacity onPress={handleRemoveItem} style={styles.actionBtn}>
           <Ionicons name="close-circle" size={24} color="#666" />
         </TouchableOpacity>
       </View>
@@ -95,12 +111,14 @@ export const AudioDownloaderQueueTab = memo(() => {
   const clearCompleted = useDownloadQueueStore(s => s.clearCompleted);
   const hasCompleted = queue.some(i => i.status === 'completed');
 
+  const renderQueueItem = useCallback(({ item }: { item: QueueItem }) => <QueueRow item={item} />, []);
+
   return (
     <View style={styles.container}>
       <FlatList
         data={queue}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => <QueueRow item={item} />}
+        renderItem={renderQueueItem}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.empty}>
